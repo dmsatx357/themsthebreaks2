@@ -1,4 +1,4 @@
-(async function () {
+
   document.body.style.margin = "0";
   document.body.style.overflow = "hidden";
   document.body.style.background = "#07000d";
@@ -1133,4 +1133,3 @@
     if (flashAlpha < 0.01) flashAlpha = 0;
     flash.alpha = flashAlpha;
   });
-})();
