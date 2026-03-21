@@ -33,8 +33,7 @@
   const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
   const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
   const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
-
-  const BEST_KEY = "whalers_best_coins_v1";
+  const BEST_KEY = "whalers_best_coins_v2";
 
   const TIMES = {
     intro: 0,
@@ -217,22 +216,31 @@
     if (!audioCtx) return;
     try {
       const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
 
-      osc.type = "square";
-      osc.frequency.setValueAtTime(1200, now);
-      osc.frequency.exponentialRampToValueAtTime(1800, now + 0.08);
+      osc1.type = "square";
+      osc2.type = "triangle";
+
+      osc1.frequency.setValueAtTime(1200, now);
+      osc1.frequency.exponentialRampToValueAtTime(1800, now + 0.08);
+
+      osc2.frequency.setValueAtTime(800, now);
+      osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
 
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.14, now + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
 
-      osc.connect(gain);
+      osc1.connect(gain);
+      osc2.connect(gain);
       gain.connect(audioCtx.destination);
 
-      osc.start(now);
-      osc.stop(now + 0.18);
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.18);
+      osc2.stop(now + 0.18);
     } catch (e) {}
   }
 
@@ -254,11 +262,8 @@
   let coinSpawnTimer = 0;
   let globalSpawnCooldown = 0;
   let flashAlpha = 0;
-  let touchHeld = false;
-  let touchSide = null;
   let coinCount = 0;
   let shakeIntensity = 0;
-  let nextRepeatAt = 0;
   let glitchTimer = 0;
 
   const world = new PIXI.Container();
@@ -660,7 +665,9 @@
   titleScreen.addChild(title2);
 
   const instructions = new PIXI.Text({
-    text: "AVOID THE EMPs\nCOLLECT MITCH COINS\nHIT AN EMP AND YOU LOSE ALL COINS",
+    text: isMobile
+      ? "TAP LEFT / RIGHT\nAVOID THE EMPs\nCOLLECT MITCH COINS"
+      : "ARROW KEYS\nAVOID THE EMPs\nCOLLECT MITCH COINS",
     style: {
       fontFamily: "Arial",
       fontSize: 22,
@@ -734,7 +741,7 @@
   });
   endedText.anchor.set(0.5);
   endedText.x = w / 2;
-  endedText.y = h / 2 - 48;
+  endedText.y = h / 2 - 54;
   endedScreen.addChild(endedText);
 
   const endedScore = new PIXI.Text({
@@ -750,7 +757,7 @@
   });
   endedScore.anchor.set(0.5);
   endedScore.x = w / 2;
-  endedScore.y = h / 2 + 2;
+  endedScore.y = h / 2 - 5;
   endedScreen.addChild(endedScore);
 
   const endedBest = new PIXI.Text({
@@ -766,8 +773,24 @@
   });
   endedBest.anchor.set(0.5);
   endedBest.x = w / 2;
-  endedBest.y = h / 2 + 42;
+  endedBest.y = h / 2 + 34;
   endedScreen.addChild(endedBest);
+
+  const endedBadge = new PIXI.Text({
+    text: "",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 20,
+      fontWeight: "900",
+      fill: "#fff5bf",
+      stroke: "#ff4fa3",
+      strokeThickness: 2
+    }
+  });
+  endedBadge.anchor.set(0.5);
+  endedBadge.x = w / 2;
+  endedBadge.y = h / 2 + 72;
+  endedScreen.addChild(endedBadge);
 
   function updateBestDisplays() {
     bestValue.text = String(bestCoins);
@@ -780,7 +803,9 @@
       bestCoins = coinCount;
       saveBestCoins(bestCoins);
       updateBestDisplays();
+      return true;
     }
+    return false;
   }
 
   function clearAll() {
@@ -812,6 +837,7 @@
     shakeIntensity = 0;
     glitchTimer = 0;
     counterValue.text = "0";
+    endedBadge.text = "";
     gameState = "playing";
     titleScreen.visible = false;
     endedScreen.visible = false;
@@ -824,6 +850,8 @@
   }
 
   function moveLane(dir) {
+    if (gameState !== "playing") return;
+    if (performance.now() < stunnedUntil) return;
     currentLane = clamp(currentLane + dir, 0, 4);
     targetX = laneBottomX(currentLane);
   }
@@ -842,10 +870,8 @@
       return;
     }
 
-    touchHeld = true;
-    touchSide = clientX < w / 2 ? "left" : "right";
-    moveLane(touchSide === "left" ? -1 : 1);
-    nextRepeatAt = performance.now() + 180;
+    if (clientX < w / 2) moveLane(-1);
+    else moveLane(1);
   }
 
   document.addEventListener("touchstart", primeAudio, { passive: true });
@@ -855,9 +881,6 @@
     if (audioCtx && audioCtx.state === "suspended") {
       try { await audioCtx.resume(); } catch {}
     }
-
-    if (gameState !== "playing") return;
-    if (performance.now() < stunnedUntil) return;
 
     if (e.key === "ArrowLeft") {
       e.preventDefault();
@@ -874,22 +897,6 @@
     await handlePress(e.clientX);
   });
 
-  app.canvas.addEventListener("pointermove", async (e) => {
-    if (!touchHeld || gameState !== "playing") return;
-    await primeAudio();
-    touchSide = e.clientX < w / 2 ? "left" : "right";
-  });
-
-  app.canvas.addEventListener("pointerup", () => {
-    touchHeld = false;
-    touchSide = null;
-  });
-
-  app.canvas.addEventListener("pointercancel", () => {
-    touchHeld = false;
-    touchSide = null;
-  });
-
   app.ticker.add(() => {
     const now = performance.now();
     const t = song.currentTime || 0;
@@ -897,6 +904,12 @@
     const pacing = SECTION_PACING[section];
 
     updateAudio();
+
+    // late song speed ramp
+    let sectionSpeed = pacing.speed;
+    if (t > 160) sectionSpeed *= 1.12;
+    if (t > 180) sectionSpeed *= 1.18;
+    if (t > 200) sectionSpeed *= 1.22;
 
     sky.clear();
     sky.rect(0, 0, w, h).fill(0x07000d);
@@ -939,12 +952,7 @@
       return;
     }
 
-    if (touchHeld && touchSide && now >= stunnedUntil && now >= nextRepeatAt) {
-      moveLane(touchSide === "left" ? -1 : 1);
-      nextRepeatAt = now + (isMobile ? 110 : 140);
-    }
-
-    car.x += (targetX - car.x) * (isMobile ? 0.22 : 0.18);
+    car.x += (targetX - car.x) * (isMobile ? 0.24 : 0.18);
 
     if (Math.random() < 0.35) spawnSmoke();
     for (let i = smoke.length - 1; i >= 0; i--) {
@@ -1006,7 +1014,18 @@
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
-      updateObstacle(o, pacing.speed * (1 + beat * 0.25), now);
+      updateObstacle(o, sectionSpeed * (1 + beat * 0.25), now);
+
+      // coin magnet
+      if (o.kind === "coin") {
+        const dx = car.x - o.x;
+        const dy = car.y - o.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          o.x += dx * 0.08;
+          o.y += dy * 0.08;
+        }
+      }
 
       if (!o.hit && now >= stunnedUntil && isColliding(car, o)) {
         o.hit = true;
@@ -1070,9 +1089,10 @@
 
   song.addEventListener("ended", () => {
     if (gameState === "playing") {
-      maybeUpdateBest();
+      const wasNewBest = maybeUpdateBest();
       endedScore.text = `COINS: ${coinCount}`;
       endedBest.text = `BEST: ${bestCoins}`;
+      endedBadge.text = wasNewBest ? "NEW BEST" : "";
       gameState = "ended";
       endedScreen.visible = true;
     }
