@@ -33,7 +33,7 @@
   const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
   const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
   const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
-  const BEST_KEY = "whalers_best_coins_v2";
+  const BEST_KEY = "whalers_best_coins_v3";
 
   const TIMES = {
     intro: 0,
@@ -265,6 +265,8 @@
   let coinCount = 0;
   let shakeIntensity = 0;
   let glitchTimer = 0;
+  let empWarningTimer = 0;
+  let empWarningSide = "left";
 
   const world = new PIXI.Container();
   const ui = new PIXI.Container();
@@ -337,8 +339,13 @@
   const sideLines = new PIXI.Graphics();
   world.addChild(sideLines);
 
-  function drawSideLines(scroll) {
+  function drawSideLines(scroll, section) {
     sideLines.clear();
+
+    const isFinalRun = section === "outro";
+    const baseColor = isFinalRun ? 0xb32f6a : 0x4f79b7;
+    const flashColor = isFinalRun ? 0xff5b9f : 0xeafcff;
+    const widthBoost = isFinalRun ? 1.25 : 1;
 
     for (let i = 0; i < 8; i++) {
       let t = (i / 8 + scroll) % 1;
@@ -350,40 +357,42 @@
       const leftEnd = leftRoadX - lerp(20, 60, t);
       const rightStart = rightRoadX + lerp(20, 60, t);
 
-      const baseAlpha = lerp(0.05, 0.18, t);
-      const flashBoost = beat > 0.14 ? (0.16 + beat * 0.38) : 0;
-      const shouldFlash = i % 2 === 0 || beat > 0.22;
+      const baseAlpha = lerp(0.05, isFinalRun ? 0.26 : 0.18, t);
+      const flashBoost = beat > 0.14
+        ? (isFinalRun ? 0.28 + beat * 0.55 : 0.16 + beat * 0.38)
+        : 0;
+      const shouldFlash = i % 2 === 0 || beat > 0.22 || isFinalRun;
 
       sideLines.moveTo(0, y);
       sideLines.lineTo(leftEnd, y);
       sideLines.stroke({
-        color: 0x4f79b7,
-        width: lerp(1, 3, t),
+        color: baseColor,
+        width: lerp(1, 3 * widthBoost, t),
         alpha: baseAlpha
       });
 
       sideLines.moveTo(rightStart, y);
       sideLines.lineTo(w, y);
       sideLines.stroke({
-        color: 0x4f79b7,
-        width: lerp(1, 3, t),
+        color: baseColor,
+        width: lerp(1, 3 * widthBoost, t),
         alpha: baseAlpha
       });
 
-      if (shouldFlash && beat > 0.14) {
+      if (shouldFlash && beat > 0.10) {
         sideLines.moveTo(0, y);
         sideLines.lineTo(leftEnd, y);
         sideLines.stroke({
-          color: 0xeafcff,
-          width: lerp(1.2, 3.2, t),
+          color: flashColor,
+          width: lerp(1.2, 3.4 * widthBoost, t),
           alpha: flashBoost
         });
 
         sideLines.moveTo(rightStart, y);
         sideLines.lineTo(w, y);
         sideLines.stroke({
-          color: 0xeafcff,
-          width: lerp(1.2, 3.2, t),
+          color: flashColor,
+          width: lerp(1.2, 3.4 * widthBoost, t),
           alpha: flashBoost
         });
       }
@@ -560,6 +569,10 @@
   glitchOverlay.alpha = 0;
   ui.addChild(glitchOverlay);
 
+  const warningOverlay = new PIXI.Graphics();
+  warningOverlay.alpha = 0;
+  ui.addChild(warningOverlay);
+
   const counterLabel = new PIXI.Text({
     text: "MITCH COINS",
     style: {
@@ -619,6 +632,49 @@
   bestValue.x = w - 20;
   bestValue.y = 36;
   ui.addChild(bestValue);
+
+  // mobile arrows
+  const mobileControls = new PIXI.Container();
+  ui.addChild(mobileControls);
+  mobileControls.visible = isMobile && gameState === "playing";
+
+  const leftButton = new PIXI.Graphics();
+  leftButton.roundRect(18, h - 92, 74, 58, 16).fill({ color: 0xffffff, alpha: 0.08 });
+  leftButton.stroke({ color: 0x7fdcff, width: 2, alpha: 0.35 });
+  mobileControls.addChild(leftButton);
+
+  const rightButton = new PIXI.Graphics();
+  rightButton.roundRect(w - 92, h - 92, 74, 58, 16).fill({ color: 0xffffff, alpha: 0.08 });
+  rightButton.stroke({ color: 0x7fdcff, width: 2, alpha: 0.35 });
+  mobileControls.addChild(rightButton);
+
+  const leftArrow = new PIXI.Text({
+    text: "◀",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 30,
+      fontWeight: "900",
+      fill: "#d7f4ff"
+    }
+  });
+  leftArrow.anchor.set(0.5);
+  leftArrow.x = 55;
+  leftArrow.y = h - 63;
+  mobileControls.addChild(leftArrow);
+
+  const rightArrow = new PIXI.Text({
+    text: "▶",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 30,
+      fontWeight: "900",
+      fill: "#d7f4ff"
+    }
+  });
+  rightArrow.anchor.set(0.5);
+  rightArrow.x = w - 55;
+  rightArrow.y = h - 63;
+  mobileControls.addChild(rightArrow);
 
   const titleScreen = new PIXI.Container();
   ui.addChild(titleScreen);
@@ -836,11 +892,13 @@
     coinCount = 0;
     shakeIntensity = 0;
     glitchTimer = 0;
+    empWarningTimer = 0;
     counterValue.text = "0";
     endedBadge.text = "";
     gameState = "playing";
     titleScreen.visible = false;
     endedScreen.visible = false;
+    mobileControls.visible = isMobile;
     await startSong();
   }
 
@@ -905,7 +963,6 @@
 
     updateAudio();
 
-    // late song speed ramp
     let sectionSpeed = pacing.speed;
     if (t > 160) sectionSpeed *= 1.12;
     if (t > 180) sectionSpeed *= 1.18;
@@ -937,10 +994,19 @@
 
     gridScroll += 0.008 * (1 + beat * 0.3);
     if (gridScroll >= 1) gridScroll = 0;
-    drawSideLines(gridScroll);
+    drawSideLines(gridScroll, section);
 
     counterValue.text = String(coinCount);
     bestValue.text = String(bestCoins);
+
+    if (isMobile) {
+      mobileControls.visible = gameState === "playing";
+      const pulse = 0.18 + Math.abs(Math.sin(now * 0.004)) * 0.10;
+      leftButton.alpha = pulse;
+      rightButton.alpha = pulse;
+      leftArrow.alpha = 0.78 + Math.abs(Math.sin(now * 0.005)) * 0.16;
+      rightArrow.alpha = 0.78 + Math.abs(Math.sin(now * 0.005)) * 0.16;
+    }
 
     if (gameState !== "playing") {
       flashAlpha *= 0.88;
@@ -949,6 +1015,8 @@
       world.y = 0;
       glitchOverlay.clear();
       glitchOverlay.alpha = 0;
+      warningOverlay.clear();
+      warningOverlay.alpha = 0;
       return;
     }
 
@@ -998,11 +1066,18 @@
 
     if (globalSpawnCooldown > 0) globalSpawnCooldown -= 1;
 
+    // EMP warning flicker just before spawn
+    if (hazardSpawnTimer > pacing.empEvery - 16 && globalSpawnCooldown <= 0) {
+      empWarningTimer = Math.max(empWarningTimer, 12);
+      empWarningSide = Math.random() > 0.5 ? "left" : "right";
+    }
+
     hazardSpawnTimer += 1;
     if (hazardSpawnTimer > pacing.empEvery && globalSpawnCooldown <= 0) {
       spawnEMP();
       hazardSpawnTimer = 0;
       globalSpawnCooldown = pacing.cooldown;
+      empWarningTimer = 0;
     }
 
     coinSpawnTimer += 1;
@@ -1016,7 +1091,6 @@
       const o = obstacles[i];
       updateObstacle(o, sectionSpeed * (1 + beat * 0.25), now);
 
-      // coin magnet
       if (o.kind === "coin") {
         const dx = car.x - o.x;
         const dy = car.y - o.y;
@@ -1082,6 +1156,22 @@
       glitchOverlay.alpha = 0;
     }
 
+    if (empWarningTimer > 0) {
+      empWarningTimer -= 1;
+      warningOverlay.clear();
+      const alpha = 0.06 + Math.abs(Math.sin(now * 0.04)) * 0.14;
+
+      if (empWarningSide === "left") {
+        warningOverlay.rect(0, 0, w * 0.18, h).fill({ color: 0xff4f8d, alpha });
+      } else {
+        warningOverlay.rect(w * 0.82, 0, w * 0.18, h).fill({ color: 0xff4f8d, alpha });
+      }
+      warningOverlay.alpha = 1;
+    } else {
+      warningOverlay.clear();
+      warningOverlay.alpha = 0;
+    }
+
     flashAlpha *= 0.87;
     if (flashAlpha < 0.01) flashAlpha = 0;
     flash.alpha = flashAlpha;
@@ -1095,6 +1185,7 @@
       endedBadge.text = wasNewBest ? "NEW BEST" : "";
       gameState = "ended";
       endedScreen.visible = true;
+      mobileControls.visible = false;
     }
   });
 
