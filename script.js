@@ -33,7 +33,8 @@
   const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
   const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
   const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
-  const BEST_KEY = "whalers_best_coins_v4";
+  const BEST_KEY = "whalers_best_coins_v6";
+  const FINAL_SPRINT_TIME = 195;
 
   const TIMES = {
     intro: 0,
@@ -292,6 +293,8 @@
   let comboCount = 0;
   let bestCombo = 0;
   let comboFlash = 0;
+  let lastMoveDir = 0;
+  let patternCooldown = 0;
 
   const world = new PIXI.Container();
   const ui = new PIXI.Container();
@@ -367,10 +370,10 @@
   function drawSideLines(scroll, section) {
     sideLines.clear();
 
-    const isFinalRun = section === "outro";
-    const baseColor = isFinalRun ? 0xb32f6a : 0x4f79b7;
-    const flashColor = isFinalRun ? 0xff5b9f : 0xeafcff;
-    const widthBoost = isFinalRun ? 1.25 : 1;
+    const isFinalRun = song.currentTime > FINAL_SPRINT_TIME || section === "outro";
+    const baseColor = isFinalRun ? 0xc52f6f : 0x4f79b7;
+    const flashColor = isFinalRun ? 0xff2f85 : 0xeafcff;
+    const widthBoost = isFinalRun ? 1.55 : 1;
 
     for (let i = 0; i < 8; i++) {
       let t = (i / 8 + scroll) % 1;
@@ -382,17 +385,16 @@
       const leftEnd = leftRoadX - lerp(20, 60, t);
       const rightStart = rightRoadX + lerp(20, 60, t);
 
-      const baseAlpha = lerp(0.05, isFinalRun ? 0.26 : 0.18, t);
-      const flashBoost = beat > 0.14
-        ? (isFinalRun ? 0.28 + beat * 0.55 : 0.16 + beat * 0.38)
+      const baseAlpha = lerp(0.05, isFinalRun ? 0.38 : 0.18, t);
+      const flashBoost = beat > 0.12
+        ? (isFinalRun ? 0.42 + beat * 0.95 : 0.16 + beat * 0.38)
         : 0;
-      const shouldFlash = i % 2 === 0 || beat > 0.22 || isFinalRun;
 
       sideLines.moveTo(0, y);
       sideLines.lineTo(leftEnd, y);
       sideLines.stroke({
         color: baseColor,
-        width: lerp(1, 3 * widthBoost, t),
+        width: lerp(1, 3.6 * widthBoost, t),
         alpha: baseAlpha
       });
 
@@ -400,16 +402,16 @@
       sideLines.lineTo(w, y);
       sideLines.stroke({
         color: baseColor,
-        width: lerp(1, 3 * widthBoost, t),
+        width: lerp(1, 3.6 * widthBoost, t),
         alpha: baseAlpha
       });
 
-      if (shouldFlash && beat > 0.10) {
+      if (beat > 0.10 || isFinalRun) {
         sideLines.moveTo(0, y);
         sideLines.lineTo(leftEnd, y);
         sideLines.stroke({
           color: flashColor,
-          width: lerp(1.2, 3.4 * widthBoost, t),
+          width: lerp(1.4, 4.8 * widthBoost, t),
           alpha: flashBoost
         });
 
@@ -417,7 +419,7 @@
         sideLines.lineTo(w, y);
         sideLines.stroke({
           color: flashColor,
-          width: lerp(1.2, 3.4 * widthBoost, t),
+          width: lerp(1.4, 4.8 * widthBoost, t),
           alpha: flashBoost
         });
       }
@@ -457,29 +459,31 @@
   const pickupBursts = [];
   const floatingTexts = [];
 
-  function spawnCoinBurst(x, y) {
-    for (let i = 0; i < 10; i++) {
+  function spawnCoinBurst(x, y, value = 1) {
+    for (let i = 0; i < (value === 3 ? 16 : 10); i++) {
       const spark = new PIXI.Graphics();
       spark.circle(0, 0, Math.random() * 3 + 1.5).fill(
-        i % 2 === 0 ? 0xfff7b2 : 0xff8fd2
+        value === 3
+          ? (i % 2 === 0 ? 0xff8fd2 : 0xfff7b2)
+          : (i % 2 === 0 ? 0xfff7b2 : 0xff8fd2)
       );
       spark.x = x;
       spark.y = y;
-      spark.vx = (Math.random() - 0.5) * 5.5;
-      spark.vy = (Math.random() - 0.5) * 5.5 - 1;
+      spark.vx = (Math.random() - 0.5) * (value === 3 ? 7 : 5.5);
+      spark.vy = (Math.random() - 0.5) * (value === 3 ? 7 : 5.5) - 1;
       spark.life = 1;
       fxContainer.addChild(spark);
       pickupBursts.push(spark);
     }
 
     const txt = new PIXI.Text({
-      text: "+1",
+      text: value === 3 ? "+3" : "+1",
       style: {
         fontFamily: "Arial",
-        fontSize: 24,
+        fontSize: value === 3 ? 28 : 24,
         fontWeight: "900",
         fill: "#fff5bf",
-        stroke: "#ff4fa3",
+        stroke: value === 3 ? "#ff6bb4" : "#ff4fa3",
         strokeThickness: 2
       }
     });
@@ -531,14 +535,36 @@
     return wrap;
   }
 
-  function spawnEMP() {
-    const lane = Math.floor(Math.random() * 5);
+  function makeBigCoin() {
+    const wrap = new PIXI.Container();
+
+    const glow = new PIXI.Graphics();
+    glow.circle(0, 0, 70).fill({ color: 0xff4fa3, alpha: 0.18 });
+    wrap.addChild(glow);
+
+    const coin = new PIXI.Sprite(coinTexture);
+    coin.anchor.set(0.5);
+    wrap.addChild(coin);
+
+    wrap.kind = "bigcoin";
+    wrap.coin = coin;
+    wrap.glow = glow;
+    wrap.spinOffset = Math.random() * 1000;
+    return wrap;
+  }
+
+  function spawnEMPAtLane(lane, progress = 0) {
     const obj = makeEMP();
     obj.lane = lane;
-    obj.progress = 0;
+    obj.progress = progress;
     obj.hit = false;
     obstacleContainer.addChild(obj);
     obstacles.push(obj);
+  }
+
+  function spawnEMP() {
+    const lane = Math.floor(Math.random() * 5);
+    spawnEMPAtLane(lane, 0);
   }
 
   function spawnCoin() {
@@ -549,6 +575,59 @@
     obj.hit = false;
     obstacleContainer.addChild(obj);
     obstacles.push(obj);
+  }
+
+  function spawnBigCoin() {
+    const dangerousLanes = [1, 2, 3];
+    const lane = dangerousLanes[Math.floor(Math.random() * dangerousLanes.length)];
+    const obj = makeBigCoin();
+    obj.lane = lane;
+    obj.progress = 0;
+    obj.hit = false;
+    obstacleContainer.addChild(obj);
+    obstacles.push(obj);
+  }
+
+  function spawnFinalPattern() {
+    const patternType = Math.floor(Math.random() * 3);
+
+    if (patternType === 0) {
+      const safeLane = Math.floor(Math.random() * 5);
+      for (let l = 0; l < 5; l++) {
+        if (l !== safeLane) spawnEMPAtLane(l, 0.16);
+      }
+      if (Math.random() < 0.7) {
+        const baitLane = clamp(safeLane + (Math.random() > 0.5 ? 1 : -1), 0, 4);
+        const big = makeBigCoin();
+        big.lane = baitLane;
+        big.progress = 0.09;
+        big.hit = false;
+        obstacleContainer.addChild(big);
+        obstacles.push(big);
+      }
+    } else if (patternType === 1) {
+      const center = 2;
+      spawnEMPAtLane(0, 0.14);
+      spawnEMPAtLane(4, 0.14);
+      spawnEMPAtLane(1, 0.08);
+      spawnEMPAtLane(3, 0.08);
+      const big = makeBigCoin();
+      big.lane = center;
+      big.progress = 0.03;
+      big.hit = false;
+      obstacleContainer.addChild(big);
+      obstacles.push(big);
+    } else {
+      spawnEMPAtLane(1, 0.16);
+      spawnEMPAtLane(2, 0.10);
+      spawnEMPAtLane(3, 0.16);
+      const coin = makeBigCoin();
+      coin.lane = Math.random() > 0.5 ? 0 : 4;
+      coin.progress = 0.06;
+      coin.hit = false;
+      obstacleContainer.addChild(coin);
+      obstacles.push(coin);
+    }
   }
 
   function updateObstacle(o, speed, now) {
@@ -564,6 +643,13 @@
       o.rotation = Math.sin(now * 0.01 + o.spinOffset) * 0.15;
       o.coin.scale.x = 0.9 + Math.abs(Math.sin(now * 0.012 + o.spinOffset)) * 0.35;
       o.glow.alpha = lerp(0.10, 0.22, depth) * (1 + beat * 0.18);
+    } else if (o.kind === "bigcoin") {
+      const s = lerp(0.05, 0.26, depth);
+      o.scale.set(s);
+      o.alpha = lerp(0.72, 1, depth);
+      o.rotation = Math.sin(now * 0.01 + o.spinOffset) * 0.2;
+      o.coin.scale.x = 0.8 + Math.abs(Math.sin(now * 0.014 + o.spinOffset)) * 0.5;
+      o.glow.alpha = lerp(0.2, 0.4, depth) * (1 + beat * 0.4);
     } else {
       const s = lerp(0.18, 1.6, depth);
       o.scale.set(s);
@@ -577,8 +663,14 @@
     const aHalfW = isMobile ? 30 : 24;
     const aHalfH = isMobile ? 44 : 38;
     const bScale = b.scale.x || 1;
-    const bHalfW = b.kind === "coin" ? 85 * bScale : 18 * bScale;
-    const bHalfH = b.kind === "coin" ? 85 * bScale : 24 * bScale;
+    const bHalfW =
+      b.kind === "bigcoin" ? 110 * bScale :
+      b.kind === "coin" ? 85 * bScale :
+      18 * bScale;
+    const bHalfH =
+      b.kind === "bigcoin" ? 110 * bScale :
+      b.kind === "coin" ? 85 * bScale :
+      24 * bScale;
 
     return (
       Math.abs(a.x - b.x) < aHalfW + bHalfW &&
@@ -990,6 +1082,7 @@
     shakeIntensity = 0;
     glitchTimer = 0;
     empWarningTimer = 0;
+    patternCooldown = 0;
     counterValue.text = "0";
     comboValue.text = "x0";
     endedBadge.text = "";
@@ -1016,6 +1109,7 @@
       targetX = laneBottomX(currentLane);
       playWhoosh();
       car.bump = 1;
+      lastMoveDir = dir;
     }
   }
 
@@ -1064,6 +1158,7 @@
     const now = performance.now();
     const t = song.currentTime || 0;
     const section = getSection(t);
+    const isFinalSprint = t > FINAL_SPRINT_TIME;
     const pacing = SECTION_PACING[section];
 
     updateAudio();
@@ -1072,6 +1167,7 @@
     if (t > 160) sectionSpeed *= 1.12;
     if (t > 180) sectionSpeed *= 1.18;
     if (t > 200) sectionSpeed *= 1.22;
+    if (isFinalSprint) sectionSpeed *= 1.16;
 
     sky.clear();
     sky.rect(0, 0, w, h).fill(0x07000d);
@@ -1081,23 +1177,25 @@
       s.scale.set(0.9 + Math.abs(Math.sin(now * s.speed * 1.7 + s.offset)) * 0.7);
     }
 
-    sun.scale.set(0.48 + beat * 0.08);
+    const sunBaseScale = isFinalSprint ? 0.52 : 0.48;
+    sun.scale.set(sunBaseScale + beat * (isFinalSprint ? 0.12 : 0.08));
 
     sunGlow.clear();
-    sunGlow.circle(w / 2, horizonY - 70, 128).fill({
-      color: 0x5f1636,
-      alpha: 0.16 + beat * 0.08
+    sunGlow.circle(w / 2, horizonY - 70, isFinalSprint ? 146 : 128).fill({
+      color: isFinalSprint ? 0x8f214d : 0x5f1636,
+      alpha: (isFinalSprint ? 0.22 : 0.16) + beat * (isFinalSprint ? 0.16 : 0.08)
     });
 
+    // brighter logo glow
     logoGlow.clear();
-    logoGlow.circle(logo.x, logo.y + 6, 110).fill({
-      color: 0xffffff,
-      alpha: 0.05 + beat * 0.10
+    logoGlow.circle(logo.x, logo.y + 6, isFinalSprint ? 155 : 135).fill({
+      color: isFinalSprint ? 0xff8cc2 : 0xfff2fb,
+      alpha: (isFinalSprint ? 0.20 : 0.14) + beat * (isFinalSprint ? 0.24 : 0.16)
     });
-    logo.alpha = 0.70 + beat * 0.25;
-    logo.scale.set(0.28 + beat * 0.025);
+    logo.alpha = isFinalSprint ? 0.96 + beat * 0.22 : 0.84 + beat * 0.18;
+    logo.scale.set((isFinalSprint ? 0.305 : 0.285) + beat * (isFinalSprint ? 0.045 : 0.03));
 
-    gridScroll += 0.008 * (1 + beat * 0.3);
+    gridScroll += 0.008 * (1 + beat * (isFinalSprint ? 0.55 : 0.3));
     if (gridScroll >= 1) gridScroll = 0;
     drawSideLines(gridScroll, section);
 
@@ -1114,8 +1212,8 @@
     if (isMobile) {
       mobileControls.visible = gameState === "playing";
       const pulse = 0.18 + Math.abs(Math.sin(now * 0.004)) * 0.10;
-      const leftActive = car.bump > 0 && targetX < car.x;
-      const rightActive = car.bump > 0 && targetX > car.x;
+      const leftActive = car.bump > 0 && lastMoveDir < 0;
+      const rightActive = car.bump > 0 && lastMoveDir > 0;
       drawMobileButtons(leftActive, rightActive);
       leftArrow.alpha = 0.78 + Math.abs(Math.sin(now * 0.005)) * 0.16;
       rightArrow.alpha = 0.78 + Math.abs(Math.sin(now * 0.005)) * 0.16;
@@ -1196,35 +1294,48 @@
     }
 
     if (globalSpawnCooldown > 0) globalSpawnCooldown -= 1;
+    if (patternCooldown > 0) patternCooldown -= 1;
 
     if (hazardSpawnTimer > pacing.empEvery - 16 && globalSpawnCooldown <= 0) {
       empWarningTimer = Math.max(empWarningTimer, 12);
     }
 
+    const hazardRate = isFinalSprint ? 38 : pacing.empEvery;
+    const coinRate = isFinalSprint ? 70 : pacing.coinEvery;
+
     hazardSpawnTimer += 1;
-    if (hazardSpawnTimer > pacing.empEvery && globalSpawnCooldown <= 0) {
+    if (hazardSpawnTimer > hazardRate && globalSpawnCooldown <= 0) {
       spawnEMP();
       hazardSpawnTimer = 0;
-      globalSpawnCooldown = pacing.cooldown;
+      globalSpawnCooldown = isFinalSprint ? Math.max(18, pacing.cooldown - 8) : pacing.cooldown;
       empWarningTimer = 0;
+
+      if (isFinalSprint && patternCooldown <= 0 && Math.random() < 0.25) {
+        spawnFinalPattern();
+        patternCooldown = 80;
+      }
     }
 
     coinSpawnTimer += 1;
-    if (coinSpawnTimer > pacing.coinEvery && globalSpawnCooldown <= 0) {
-      spawnCoin();
+    if (coinSpawnTimer > coinRate && globalSpawnCooldown <= 0) {
+      if (Math.random() < (isFinalSprint ? 0.35 : 0.15)) {
+        spawnBigCoin();
+      } else {
+        spawnCoin();
+      }
       coinSpawnTimer = 0;
-      globalSpawnCooldown = pacing.cooldown;
     }
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
       updateObstacle(o, sectionSpeed * (1 + beat * 0.25), now);
 
-      if (o.kind === "coin") {
+      if (o.kind === "coin" || o.kind === "bigcoin") {
         const dx = car.x - o.x;
         const dy = car.y - o.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 150) {
+        const magnetDist = o.kind === "bigcoin" ? 130 : 150;
+        if (dist < magnetDist) {
           o.x += dx * 0.08;
           o.y += dy * 0.08;
         }
@@ -1240,7 +1351,18 @@
           comboFlash = 1;
           maybeUpdateBest();
           playCoinPing();
-          spawnCoinBurst(o.x, o.y);
+          spawnCoinBurst(o.x, o.y, 1);
+          obstacleContainer.removeChild(o);
+          obstacles.splice(i, 1);
+          continue;
+        } else if (o.kind === "bigcoin") {
+          coinCount += 3;
+          comboCount += 3;
+          bestCombo = Math.max(bestCombo, comboCount);
+          comboFlash = 1.2;
+          maybeUpdateBest();
+          playCoinPing();
+          spawnCoinBurst(o.x, o.y, 3);
           obstacleContainer.removeChild(o);
           obstacles.splice(i, 1);
           continue;
@@ -1312,7 +1434,7 @@
       endedScore.text = `COINS: ${coinCount}`;
       endedBest.text = `BEST: ${bestCoins}`;
       endedCombo.text = `BEST COMBO: ${bestCombo}`;
-      endedBadge.text = wasNewBest ? "NEW BEST" : comboCount >= 10 ? "HOT STREAK" : "";
+      endedBadge.text = wasNewBest ? "NEW BEST" : bestCombo >= 10 ? "HOT STREAK" : "";
       gameState = "ended";
       endedScreen.visible = true;
       mobileControls.visible = false;
