@@ -1,6 +1,9 @@
   document.body.style.margin = "0";
   document.body.style.overflow = "hidden";
   document.body.style.background = "#07000d";
+  document.body.style.touchAction = "none";
+  document.body.tabIndex = 0;
+  document.body.focus();
 
   await new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -17,6 +20,8 @@
     antialias: true
   });
   document.body.appendChild(app.canvas);
+  app.canvas.style.display = "block";
+  app.canvas.style.touchAction = "none";
 
   const w = app.screen.width;
   const h = app.screen.height;
@@ -28,6 +33,8 @@
   const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
   const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
   const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
+
+  const BEST_KEY = "whalers_best_coins_v1";
 
   const TIMES = {
     intro: 0,
@@ -41,12 +48,32 @@
     outro: 164
   };
 
+  const SECTION_PACING = {
+    intro: { empEvery: 130, coinEvery: 150, cooldown: 34, speed: 0.0105 },
+    verse: { empEvery: 108, coinEvery: 128, cooldown: 30, speed: 0.0115 },
+    prechorus: { empEvery: 92, coinEvery: 132, cooldown: 28, speed: 0.0125 },
+    chorus1: { empEvery: 76, coinEvery: 142, cooldown: 24, speed: 0.0145 },
+    chorusOutro: { empEvery: 98, coinEvery: 126, cooldown: 28, speed: 0.0120 },
+    guitarSolo: { empEvery: 86, coinEvery: 118, cooldown: 24, speed: 0.0140 },
+    chorus2: { empEvery: 72, coinEvery: 136, cooldown: 22, speed: 0.0150 },
+    bridge: { empEvery: 120, coinEvery: 108, cooldown: 30, speed: 0.0110 },
+    outro: { empEvery: 112, coinEvery: 116, cooldown: 30, speed: 0.0105 }
+  };
+
   const horizonY = h * 0.81;
 
   const roadBottomLeft = isMobile ? w * 0.12 : w * 0.28;
   const roadBottomRight = isMobile ? w * 0.88 : w * 0.72;
   const roadTopLeft = isMobile ? w * 0.40 : w * 0.465;
   const roadTopRight = isMobile ? w * 0.60 : w * 0.535;
+
+  const laneTopFractions = isMobile
+    ? [0.08, 0.29, 0.50, 0.71, 0.92]
+    : [0.12, 0.32, 0.50, 0.68, 0.88];
+
+  const laneBottomFractions = isMobile
+    ? [0.05, 0.27, 0.50, 0.73, 0.95]
+    : [0.08, 0.30, 0.50, 0.70, 0.92];
 
   function lerp(a, b, t) {
     return a + (b - a) * t;
@@ -68,17 +95,33 @@
     return "intro";
   }
 
-  const SECTION_PACING = {
-    intro: { empEvery: 130, coinEvery: 150, cooldown: 34, speed: 0.0105 },
-    verse: { empEvery: 108, coinEvery: 128, cooldown: 30, speed: 0.0115 },
-    prechorus: { empEvery: 92, coinEvery: 132, cooldown: 28, speed: 0.0125 },
-    chorus1: { empEvery: 76, coinEvery: 142, cooldown: 24, speed: 0.0145 },
-    chorusOutro: { empEvery: 98, coinEvery: 126, cooldown: 28, speed: 0.0120 },
-    guitarSolo: { empEvery: 86, coinEvery: 118, cooldown: 24, speed: 0.0140 },
-    chorus2: { empEvery: 72, coinEvery: 136, cooldown: 22, speed: 0.0150 },
-    bridge: { empEvery: 120, coinEvery: 108, cooldown: 30, speed: 0.0110 },
-    outro: { empEvery: 112, coinEvery: 116, cooldown: 30, speed: 0.0105 }
-  };
+  function laneBottomX(lane) {
+    return lerp(roadBottomLeft, roadBottomRight, laneBottomFractions[lane]);
+  }
+
+  function laneWorldX(lane, depth) {
+    return lerp(
+      lerp(roadTopLeft, roadTopRight, laneTopFractions[lane]),
+      lerp(roadBottomLeft, roadBottomRight, laneBottomFractions[lane]),
+      depth
+    );
+  }
+
+  function getBestCoins() {
+    try {
+      return Number(localStorage.getItem(BEST_KEY) || 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  function saveBestCoins(value) {
+    try {
+      localStorage.setItem(BEST_KEY, String(value));
+    } catch {}
+  }
+
+  let bestCoins = getBestCoins();
 
   const song = new Audio(SONG_URL);
   song.preload = "auto";
@@ -92,46 +135,39 @@
   let low = 0;
   let mid = 0;
   let high = 0;
-  let audioUnlocked = false;
+  let audioReady = false;
 
   function setupAudio() {
-    if (audioCtx) return;
+    if (audioReady) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaElementSource(song);
     analyser = new AnalyserNode(audioCtx, { fftSize: 256 });
     freqData = new Uint8Array(analyser.frequencyBinCount);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
+    audioReady = true;
   }
 
-  async function unlockAudio() {
+  async function primeAudio() {
     try {
       setupAudio();
-      if (audioCtx.state === "suspended") {
+      if (audioCtx && audioCtx.state === "suspended") {
         await audioCtx.resume();
       }
-      song.muted = true;
-      await song.play();
-      song.pause();
-      song.currentTime = 0;
-      song.muted = false;
-      audioUnlocked = true;
     } catch (e) {
-      console.log("audio unlock blocked", e);
+      console.log("audio prime blocked", e);
     }
   }
 
   async function startSong() {
     try {
       setupAudio();
-      if (!audioUnlocked) {
-        await unlockAudio();
-      }
-      if (audioCtx.state === "suspended") {
+      if (audioCtx && audioCtx.state === "suspended") {
         await audioCtx.resume();
       }
-      song.muted = false;
-      await song.play();
+      if (song.paused) {
+        await song.play();
+      }
     } catch (e) {
       console.log("song blocked", e);
     }
@@ -143,7 +179,7 @@
   }
 
   function updateAudio() {
-    if (!analyser) {
+    if (!analyser || !freqData) {
       beat *= 0.9;
       low *= 0.9;
       mid *= 0.9;
@@ -153,7 +189,9 @@
 
     analyser.getByteFrequencyData(freqData);
 
-    let lowSum = 0, midSum = 0, highSum = 0;
+    let lowSum = 0;
+    let midSum = 0;
+    let highSum = 0;
     const n = freqData.length;
 
     for (let i = 0; i < n; i++) {
@@ -175,6 +213,29 @@
     beat = Math.max(beat * 0.78, combined);
   }
 
+  function playCoinPing() {
+    if (!audioCtx) return;
+    try {
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(1200, now);
+      osc.frequency.exponentialRampToValueAtTime(1800, now + 0.08);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } catch (e) {}
+  }
+
   const [carTexture, skylineTexture, sunTexture, logoTexture, coinTexture] =
     await Promise.all([
       PIXI.Assets.load(CAR_URL),
@@ -185,7 +246,8 @@
     ]);
 
   let gameState = "title";
-  let targetX = w / 2;
+  let currentLane = 2;
+  let targetX = laneBottomX(currentLane);
   let stunnedUntil = 0;
   let gridScroll = 0;
   let hazardSpawnTimer = 0;
@@ -195,6 +257,9 @@
   let touchHeld = false;
   let touchSide = null;
   let coinCount = 0;
+  let shakeIntensity = 0;
+  let nextRepeatAt = 0;
+  let glitchTimer = 0;
 
   const world = new PIXI.Container();
   const ui = new PIXI.Container();
@@ -222,7 +287,7 @@
   const sun = new PIXI.Sprite(sunTexture);
   sun.anchor.set(0.5);
   sun.x = w / 2;
-  sun.y = horizonY - 95;
+  sun.y = horizonY - (isMobile ? 140 : 95);
   sun.scale.set(0.48);
   world.addChild(sun);
 
@@ -322,7 +387,7 @@
 
   const car = new PIXI.Sprite(carTexture);
   car.anchor.set(0.5);
-  car.x = w / 2;
+  car.x = targetX;
   car.y = h - (isMobile ? 72 : 54);
   car.scale.set(isMobile ? 0.18 : 0.16);
   world.addChild(car);
@@ -344,22 +409,47 @@
   }
 
   const obstacleContainer = new PIXI.Container();
+  const fxContainer = new PIXI.Container();
   world.addChild(obstacleContainer);
+  ui.addChild(fxContainer);
+
   const obstacles = [];
+  const pickupBursts = [];
+  const floatingTexts = [];
 
-  function laneX(lane, depth) {
-    const top = isMobile
-      ? [0.08, 0.29, 0.50, 0.71, 0.92]
-      : [0.12, 0.32, 0.50, 0.68, 0.88];
-    const bottom = isMobile
-      ? [0.05, 0.27, 0.50, 0.73, 0.95]
-      : [0.08, 0.30, 0.50, 0.70, 0.92];
+  function spawnCoinBurst(x, y) {
+    for (let i = 0; i < 10; i++) {
+      const spark = new PIXI.Graphics();
+      spark.circle(0, 0, Math.random() * 3 + 1.5).fill(
+        i % 2 === 0 ? 0xfff7b2 : 0xff8fd2
+      );
+      spark.x = x;
+      spark.y = y;
+      spark.vx = (Math.random() - 0.5) * 5.5;
+      spark.vy = (Math.random() - 0.5) * 5.5 - 1;
+      spark.life = 1;
+      fxContainer.addChild(spark);
+      pickupBursts.push(spark);
+    }
 
-    return lerp(
-      lerp(roadTopLeft, roadTopRight, top[lane]),
-      lerp(roadBottomLeft, roadBottomRight, bottom[lane]),
-      depth
-    );
+    const txt = new PIXI.Text({
+      text: "+1",
+      style: {
+        fontFamily: "Arial",
+        fontSize: 24,
+        fontWeight: "900",
+        fill: "#fff5bf",
+        stroke: "#ff4fa3",
+        strokeThickness: 2
+      }
+    });
+    txt.anchor.set(0.5);
+    txt.x = x;
+    txt.y = y - 10;
+    txt.life = 1;
+    txt.vy = -1.1;
+    fxContainer.addChild(txt);
+    floatingTexts.push(txt);
   }
 
   function makeEMP() {
@@ -424,7 +514,7 @@
   function updateObstacle(o, speed, now) {
     o.progress += speed;
     const depth = o.progress * o.progress;
-    o.x = laneX(o.lane, depth);
+    o.x = laneWorldX(o.lane, depth);
     o.y = lerp(horizonY + 12, h + 70, depth);
 
     if (o.kind === "coin") {
@@ -461,6 +551,10 @@
   flash.alpha = 0;
   ui.addChild(flash);
 
+  const glitchOverlay = new PIXI.Graphics();
+  glitchOverlay.alpha = 0;
+  ui.addChild(glitchOverlay);
+
   const counterLabel = new PIXI.Text({
     text: "MITCH COINS",
     style: {
@@ -490,6 +584,37 @@
   counterValue.y = 36;
   ui.addChild(counterValue);
 
+  const bestLabel = new PIXI.Text({
+    text: "BEST",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 16,
+      fontWeight: "700",
+      fill: "#f3e9ff",
+      letterSpacing: 2
+    }
+  });
+  bestLabel.anchor.set(1, 0);
+  bestLabel.x = w - 22;
+  bestLabel.y = 18;
+  ui.addChild(bestLabel);
+
+  const bestValue = new PIXI.Text({
+    text: String(bestCoins),
+    style: {
+      fontFamily: "Arial",
+      fontSize: 34,
+      fontWeight: "900",
+      fill: "#ffffff",
+      stroke: "#69d5ff",
+      strokeThickness: 2
+    }
+  });
+  bestValue.anchor.set(1, 0);
+  bestValue.x = w - 20;
+  bestValue.y = 36;
+  ui.addChild(bestValue);
+
   const titleScreen = new PIXI.Container();
   ui.addChild(titleScreen);
 
@@ -498,7 +623,7 @@
   titleScreen.addChild(titleFade);
 
   const titleBox = new PIXI.Graphics();
-  titleBox.roundRect(w / 2 - 290, h / 2 - 170, 580, 340, 24).fill({ color: 0x0b0610, alpha: 0.88 });
+  titleBox.roundRect(w / 2 - 290, h / 2 - 185, 580, 380, 24).fill({ color: 0x0b0610, alpha: 0.88 });
   titleBox.stroke({ color: 0x294866, width: 2, alpha: 0.55 });
   titleScreen.addChild(titleBox);
 
@@ -516,7 +641,7 @@
   });
   title1.anchor.set(0.5);
   title1.x = w / 2;
-  title1.y = h / 2 - 105;
+  title1.y = h / 2 - 120;
   titleScreen.addChild(title1);
 
   const title2 = new PIXI.Text({
@@ -531,7 +656,7 @@
   });
   title2.anchor.set(0.5);
   title2.x = w / 2;
-  title2.y = h / 2 - 55;
+  title2.y = h / 2 - 70;
   titleScreen.addChild(title2);
 
   const instructions = new PIXI.Text({
@@ -548,8 +673,25 @@
   });
   instructions.anchor.set(0.5);
   instructions.x = w / 2;
-  instructions.y = h / 2 + 18;
+  instructions.y = h / 2 + 10;
   titleScreen.addChild(instructions);
+
+  const titleBest = new PIXI.Text({
+    text: `BEST COINS: ${bestCoins}`,
+    style: {
+      fontFamily: "Arial",
+      fontSize: 22,
+      fontWeight: "900",
+      fill: "#fff5bf",
+      stroke: "#ff4fa3",
+      strokeThickness: 2,
+      letterSpacing: 1
+    }
+  });
+  titleBest.anchor.set(0.5);
+  titleBest.x = w / 2;
+  titleBest.y = h / 2 + 95;
+  titleScreen.addChild(titleBest);
 
   const title3 = new PIXI.Text({
     text: "PRESS START",
@@ -563,7 +705,7 @@
   });
   title3.anchor.set(0.5);
   title3.x = w / 2;
-  title3.y = h / 2 + 120;
+  title3.y = h / 2 + 150;
   titleScreen.addChild(title3);
 
   const endedScreen = new PIXI.Container();
@@ -571,8 +713,13 @@
   ui.addChild(endedScreen);
 
   const endedFade = new PIXI.Graphics();
-  endedFade.rect(0, 0, w, h).fill({ color: 0x040008, alpha: 0.5 });
+  endedFade.rect(0, 0, w, h).fill({ color: 0x040008, alpha: 0.55 });
   endedScreen.addChild(endedFade);
+
+  const endedBox = new PIXI.Graphics();
+  endedBox.roundRect(w / 2 - 240, h / 2 - 120, 480, 240, 22).fill({ color: 0x0b0610, alpha: 0.88 });
+  endedBox.stroke({ color: 0x7d193d, width: 2, alpha: 0.6 });
+  endedScreen.addChild(endedBox);
 
   const endedText = new PIXI.Text({
     text: "RUN IT BACK",
@@ -587,8 +734,54 @@
   });
   endedText.anchor.set(0.5);
   endedText.x = w / 2;
-  endedText.y = h / 2;
+  endedText.y = h / 2 - 48;
   endedScreen.addChild(endedText);
+
+  const endedScore = new PIXI.Text({
+    text: "COINS: 0",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 24,
+      fontWeight: "900",
+      fill: "#fff5bf",
+      stroke: "#ff4fa3",
+      strokeThickness: 2
+    }
+  });
+  endedScore.anchor.set(0.5);
+  endedScore.x = w / 2;
+  endedScore.y = h / 2 + 2;
+  endedScreen.addChild(endedScore);
+
+  const endedBest = new PIXI.Text({
+    text: `BEST: ${bestCoins}`,
+    style: {
+      fontFamily: "Arial",
+      fontSize: 20,
+      fontWeight: "900",
+      fill: "#d9f6ff",
+      stroke: "#23456a",
+      strokeThickness: 2
+    }
+  });
+  endedBest.anchor.set(0.5);
+  endedBest.x = w / 2;
+  endedBest.y = h / 2 + 42;
+  endedScreen.addChild(endedBest);
+
+  function updateBestDisplays() {
+    bestValue.text = String(bestCoins);
+    titleBest.text = `BEST COINS: ${bestCoins}`;
+    endedBest.text = `BEST: ${bestCoins}`;
+  }
+
+  function maybeUpdateBest() {
+    if (coinCount > bestCoins) {
+      bestCoins = coinCount;
+      saveBestCoins(bestCoins);
+      updateBestDisplays();
+    }
+  }
 
   function clearAll() {
     for (const s of smoke) smokeContainer.removeChild(s);
@@ -596,12 +789,19 @@
 
     for (const o of obstacles) obstacleContainer.removeChild(o);
     obstacles.length = 0;
+
+    for (const p of pickupBursts) fxContainer.removeChild(p);
+    pickupBursts.length = 0;
+
+    for (const t of floatingTexts) fxContainer.removeChild(t);
+    floatingTexts.length = 0;
   }
 
   async function startGame() {
     clearAll();
-    targetX = w / 2;
-    car.x = w / 2;
+    currentLane = 2;
+    targetX = laneBottomX(currentLane);
+    car.x = targetX;
     stunnedUntil = 0;
     flashAlpha = 0;
     gridScroll = 0;
@@ -609,6 +809,8 @@
     coinSpawnTimer = 0;
     globalSpawnCooldown = 0;
     coinCount = 0;
+    shakeIntensity = 0;
+    glitchTimer = 0;
     counterValue.text = "0";
     gameState = "playing";
     titleScreen.visible = false;
@@ -621,54 +823,69 @@
     await startGame();
   }
 
-  document.addEventListener("touchstart", unlockAudio, { passive: true });
-  document.addEventListener("click", unlockAudio, { passive: true });
-
-  window.addEventListener("keydown", (e) => {
-    if (gameState !== "playing") return;
-    if (performance.now() < stunnedUntil) return;
-    if (e.key === "ArrowLeft") targetX -= 130;
-    if (e.key === "ArrowRight") targetX += 130;
-    targetX = clamp(targetX, roadBottomLeft + 40, roadBottomRight - 40);
-  });
-
-  function handleTouchMove(clientX) {
-    if (gameState !== "playing") return;
-    if (performance.now() < stunnedUntil) return;
-
-    if (clientX < w / 2) targetX -= isMobile ? 26 : 18;
-    else targetX += isMobile ? 26 : 18;
-
-    targetX = clamp(targetX, roadBottomLeft + 40, roadBottomRight - 40);
+  function moveLane(dir) {
+    currentLane = clamp(currentLane + dir, 0, 4);
+    targetX = laneBottomX(currentLane);
   }
 
-  window.addEventListener("pointerdown", async (e) => {
-    await unlockAudio();
+  async function handlePress(clientX) {
+    document.body.focus();
+    await primeAudio();
 
     if (gameState === "title") {
       await startGame();
       return;
     }
+
     if (gameState === "ended") {
       await restartGame();
       return;
     }
+
     touchHeld = true;
-    touchSide = e.clientX < w / 2 ? "left" : "right";
-    handleTouchMove(e.clientX);
+    touchSide = clientX < w / 2 ? "left" : "right";
+    moveLane(touchSide === "left" ? -1 : 1);
+    nextRepeatAt = performance.now() + 180;
+  }
+
+  document.addEventListener("touchstart", primeAudio, { passive: true });
+  document.addEventListener("click", primeAudio, { passive: true });
+
+  document.addEventListener("keydown", async (e) => {
+    if (audioCtx && audioCtx.state === "suspended") {
+      try { await audioCtx.resume(); } catch {}
+    }
+
+    if (gameState !== "playing") return;
+    if (performance.now() < stunnedUntil) return;
+
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      moveLane(-1);
+    }
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      moveLane(1);
+    }
   });
 
-  window.addEventListener("pointermove", (e) => {
+  app.canvas.addEventListener("pointerdown", async (e) => {
+    e.preventDefault();
+    await handlePress(e.clientX);
+  });
+
+  app.canvas.addEventListener("pointermove", async (e) => {
     if (!touchHeld || gameState !== "playing") return;
+    await primeAudio();
     touchSide = e.clientX < w / 2 ? "left" : "right";
   });
 
-  window.addEventListener("pointerup", () => {
+  app.canvas.addEventListener("pointerup", () => {
     touchHeld = false;
     touchSide = null;
   });
 
-  window.addEventListener("pointercancel", () => {
+  app.canvas.addEventListener("pointercancel", () => {
     touchHeld = false;
     touchSide = null;
   });
@@ -710,19 +927,24 @@
     drawSideLines(gridScroll);
 
     counterValue.text = String(coinCount);
+    bestValue.text = String(bestCoins);
 
     if (gameState !== "playing") {
       flashAlpha *= 0.88;
       flash.alpha = flashAlpha;
+      world.x = 0;
+      world.y = 0;
+      glitchOverlay.clear();
+      glitchOverlay.alpha = 0;
       return;
     }
 
-    if (touchHeld && touchSide && now >= stunnedUntil) {
-      targetX += touchSide === "left" ? (isMobile ? -26 : -18) : (isMobile ? 26 : 18);
-      targetX = clamp(targetX, roadBottomLeft + 40, roadBottomRight - 40);
+    if (touchHeld && touchSide && now >= stunnedUntil && now >= nextRepeatAt) {
+      moveLane(touchSide === "left" ? -1 : 1);
+      nextRepeatAt = now + (isMobile ? 110 : 140);
     }
 
-    car.x += (targetX - car.x) * (isMobile ? 0.18 : 0.14);
+    car.x += (targetX - car.x) * (isMobile ? 0.22 : 0.18);
 
     if (Math.random() < 0.35) spawnSmoke();
     for (let i = smoke.length - 1; i >= 0; i--) {
@@ -736,6 +958,33 @@
       if (p.life <= 0) {
         smokeContainer.removeChild(p);
         smoke.splice(i, 1);
+      }
+    }
+
+    for (let i = pickupBursts.length - 1; i >= 0; i--) {
+      const p = pickupBursts[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.97;
+      p.vy *= 0.97;
+      p.life -= 0.035;
+      p.alpha = Math.max(0, p.life);
+      p.scale.set(0.9 + (1 - p.life) * 0.8);
+      if (p.life <= 0) {
+        fxContainer.removeChild(p);
+        pickupBursts.splice(i, 1);
+      }
+    }
+
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const txt = floatingTexts[i];
+      txt.y += txt.vy;
+      txt.life -= 0.025;
+      txt.alpha = Math.max(0, txt.life);
+      txt.scale.set(1 + (1 - txt.life) * 0.25);
+      if (txt.life <= 0) {
+        fxContainer.removeChild(txt);
+        floatingTexts.splice(i, 1);
       }
     }
 
@@ -764,13 +1013,18 @@
 
         if (o.kind === "coin") {
           coinCount += 1;
+          maybeUpdateBest();
+          playCoinPing();
+          spawnCoinBurst(o.x, o.y);
           obstacleContainer.removeChild(o);
           obstacles.splice(i, 1);
           continue;
         } else {
           stunnedUntil = now + 600;
           coinCount = 0;
-          flashAlpha = 0.18 + beat * 0.22;
+          flashAlpha = 0.24 + beat * 0.28;
+          shakeIntensity = isMobile ? 16 : 12;
+          glitchTimer = 220;
         }
       }
 
@@ -780,6 +1034,35 @@
       }
     }
 
+    if (shakeIntensity > 0.05) {
+      world.x = (Math.random() - 0.5) * shakeIntensity;
+      world.y = (Math.random() - 0.5) * shakeIntensity;
+      shakeIntensity *= 0.82;
+    } else {
+      world.x = 0;
+      world.y = 0;
+      shakeIntensity = 0;
+    }
+
+    if (glitchTimer > 0) {
+      glitchTimer -= app.ticker.deltaMS;
+      glitchOverlay.clear();
+
+      for (let i = 0; i < 7; i++) {
+        const gh = 6 + Math.random() * 20;
+        const gy = Math.random() * h;
+        const gx = (Math.random() - 0.5) * 24;
+        glitchOverlay.rect(gx, gy, w + 40, gh).fill({
+          color: i % 2 === 0 ? 0xffffff : 0x7fdcff,
+          alpha: 0.04 + Math.random() * 0.10
+        });
+      }
+      glitchOverlay.alpha = glitchTimer / 220;
+    } else {
+      glitchOverlay.clear();
+      glitchOverlay.alpha = 0;
+    }
+
     flashAlpha *= 0.87;
     if (flashAlpha < 0.01) flashAlpha = 0;
     flash.alpha = flashAlpha;
@@ -787,7 +1070,12 @@
 
   song.addEventListener("ended", () => {
     if (gameState === "playing") {
+      maybeUpdateBest();
+      endedScore.text = `COINS: ${coinCount}`;
+      endedBest.text = `BEST: ${bestCoins}`;
       gameState = "ended";
       endedScreen.visible = true;
     }
   });
+
+  updateBestDisplays();
