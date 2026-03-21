@@ -710,4 +710,3 @@
       endedScreen.visible = true;
     }
   });
-app.ticker.add(() => {
