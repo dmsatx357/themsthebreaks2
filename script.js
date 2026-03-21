@@ -33,7 +33,7 @@
   const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
   const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
   const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
-  const BEST_KEY = "whalers_best_coins_v3";
+  const BEST_KEY = "whalers_best_coins_v4";
 
   const TIMES = {
     intro: 0,
@@ -244,6 +244,29 @@
     } catch (e) {}
   }
 
+  function playWhoosh() {
+    if (!audioCtx) return;
+    try {
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } catch (e) {}
+  }
+
   const [carTexture, skylineTexture, sunTexture, logoTexture, coinTexture] =
     await Promise.all([
       PIXI.Assets.load(CAR_URL),
@@ -266,7 +289,9 @@
   let shakeIntensity = 0;
   let glitchTimer = 0;
   let empWarningTimer = 0;
-  let empWarningSide = "left";
+  let comboCount = 0;
+  let bestCombo = 0;
+  let comboFlash = 0;
 
   const world = new PIXI.Container();
   const ui = new PIXI.Container();
@@ -404,6 +429,7 @@
   car.x = targetX;
   car.y = h - (isMobile ? 72 : 54);
   car.scale.set(isMobile ? 0.18 : 0.16);
+  car.bump = 0;
   world.addChild(car);
 
   const smokeContainer = new PIXI.Container();
@@ -633,19 +659,70 @@
   bestValue.y = 36;
   ui.addChild(bestValue);
 
-  // mobile arrows
+  const comboLabel = new PIXI.Text({
+    text: "COMBO",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 14,
+      fontWeight: "700",
+      fill: "#f3e9ff",
+      letterSpacing: 2
+    }
+  });
+  comboLabel.anchor.set(0.5, 0);
+  comboLabel.x = w / 2;
+  comboLabel.y = 18;
+  ui.addChild(comboLabel);
+
+  const comboValue = new PIXI.Text({
+    text: "x0",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 28,
+      fontWeight: "900",
+      fill: "#fff7bf",
+      stroke: "#ff4fa3",
+      strokeThickness: 2
+    }
+  });
+  comboValue.anchor.set(0.5, 0);
+  comboValue.x = w / 2;
+  comboValue.y = 34;
+  ui.addChild(comboValue);
+
   const mobileControls = new PIXI.Container();
   ui.addChild(mobileControls);
-  mobileControls.visible = isMobile && gameState === "playing";
+  mobileControls.visible = false;
 
   const leftButton = new PIXI.Graphics();
-  leftButton.roundRect(18, h - 92, 74, 58, 16).fill({ color: 0xffffff, alpha: 0.08 });
-  leftButton.stroke({ color: 0x7fdcff, width: 2, alpha: 0.35 });
-  mobileControls.addChild(leftButton);
-
   const rightButton = new PIXI.Graphics();
-  rightButton.roundRect(w - 92, h - 92, 74, 58, 16).fill({ color: 0xffffff, alpha: 0.08 });
-  rightButton.stroke({ color: 0x7fdcff, width: 2, alpha: 0.35 });
+
+  function drawMobileButtons(leftActive = false, rightActive = false) {
+    leftButton.clear();
+    rightButton.clear();
+
+    leftButton.roundRect(18, h - 92, 74, 58, 16).fill({
+      color: leftActive ? 0x4fc3ff : 0xffffff,
+      alpha: leftActive ? 0.18 : 0.08
+    });
+    leftButton.stroke({
+      color: leftActive ? 0xeafcff : 0x7fdcff,
+      width: 2,
+      alpha: leftActive ? 0.7 : 0.35
+    });
+
+    rightButton.roundRect(w - 92, h - 92, 74, 58, 16).fill({
+      color: rightActive ? 0x4fc3ff : 0xffffff,
+      alpha: rightActive ? 0.18 : 0.08
+    });
+    rightButton.stroke({
+      color: rightActive ? 0xeafcff : 0x7fdcff,
+      width: 2,
+      alpha: rightActive ? 0.7 : 0.35
+    });
+  }
+
+  mobileControls.addChild(leftButton);
   mobileControls.addChild(rightButton);
 
   const leftArrow = new PIXI.Text({
@@ -780,7 +857,7 @@
   endedScreen.addChild(endedFade);
 
   const endedBox = new PIXI.Graphics();
-  endedBox.roundRect(w / 2 - 240, h / 2 - 120, 480, 240, 22).fill({ color: 0x0b0610, alpha: 0.88 });
+  endedBox.roundRect(w / 2 - 250, h / 2 - 135, 500, 270, 22).fill({ color: 0x0b0610, alpha: 0.88 });
   endedBox.stroke({ color: 0x7d193d, width: 2, alpha: 0.6 });
   endedScreen.addChild(endedBox);
 
@@ -797,7 +874,7 @@
   });
   endedText.anchor.set(0.5);
   endedText.x = w / 2;
-  endedText.y = h / 2 - 54;
+  endedText.y = h / 2 - 66;
   endedScreen.addChild(endedText);
 
   const endedScore = new PIXI.Text({
@@ -813,7 +890,7 @@
   });
   endedScore.anchor.set(0.5);
   endedScore.x = w / 2;
-  endedScore.y = h / 2 - 5;
+  endedScore.y = h / 2 - 18;
   endedScreen.addChild(endedScore);
 
   const endedBest = new PIXI.Text({
@@ -829,8 +906,24 @@
   });
   endedBest.anchor.set(0.5);
   endedBest.x = w / 2;
-  endedBest.y = h / 2 + 34;
+  endedBest.y = h / 2 + 18;
   endedScreen.addChild(endedBest);
+
+  const endedCombo = new PIXI.Text({
+    text: "BEST COMBO: 0",
+    style: {
+      fontFamily: "Arial",
+      fontSize: 20,
+      fontWeight: "900",
+      fill: "#fff5bf",
+      stroke: "#ff4fa3",
+      strokeThickness: 2
+    }
+  });
+  endedCombo.anchor.set(0.5);
+  endedCombo.x = w / 2;
+  endedCombo.y = h / 2 + 52;
+  endedScreen.addChild(endedCombo);
 
   const endedBadge = new PIXI.Text({
     text: "",
@@ -845,7 +938,7 @@
   });
   endedBadge.anchor.set(0.5);
   endedBadge.x = w / 2;
-  endedBadge.y = h / 2 + 72;
+  endedBadge.y = h / 2 + 88;
   endedScreen.addChild(endedBadge);
 
   function updateBestDisplays() {
@@ -883,6 +976,7 @@
     currentLane = 2;
     targetX = laneBottomX(currentLane);
     car.x = targetX;
+    car.bump = 0;
     stunnedUntil = 0;
     flashAlpha = 0;
     gridScroll = 0;
@@ -890,10 +984,14 @@
     coinSpawnTimer = 0;
     globalSpawnCooldown = 0;
     coinCount = 0;
+    comboCount = 0;
+    bestCombo = 0;
+    comboFlash = 0;
     shakeIntensity = 0;
     glitchTimer = 0;
     empWarningTimer = 0;
     counterValue.text = "0";
+    comboValue.text = "x0";
     endedBadge.text = "";
     gameState = "playing";
     titleScreen.visible = false;
@@ -910,8 +1008,15 @@
   function moveLane(dir) {
     if (gameState !== "playing") return;
     if (performance.now() < stunnedUntil) return;
+
+    const prevLane = currentLane;
     currentLane = clamp(currentLane + dir, 0, 4);
-    targetX = laneBottomX(currentLane);
+
+    if (currentLane !== prevLane) {
+      targetX = laneBottomX(currentLane);
+      playWhoosh();
+      car.bump = 1;
+    }
   }
 
   async function handlePress(clientX) {
@@ -999,13 +1104,25 @@
     counterValue.text = String(coinCount);
     bestValue.text = String(bestCoins);
 
+    comboFlash *= 0.88;
+    const comboScale = 1 + comboFlash * 0.3;
+    comboValue.text = `x${comboCount}`;
+    comboValue.scale.set(comboScale);
+    comboLabel.alpha = comboCount > 0 ? 1 : 0.45;
+    comboValue.alpha = comboCount > 0 ? 1 : 0.55;
+
     if (isMobile) {
       mobileControls.visible = gameState === "playing";
       const pulse = 0.18 + Math.abs(Math.sin(now * 0.004)) * 0.10;
-      leftButton.alpha = pulse;
-      rightButton.alpha = pulse;
+      const leftActive = car.bump > 0 && targetX < car.x;
+      const rightActive = car.bump > 0 && targetX > car.x;
+      drawMobileButtons(leftActive, rightActive);
       leftArrow.alpha = 0.78 + Math.abs(Math.sin(now * 0.005)) * 0.16;
       rightArrow.alpha = 0.78 + Math.abs(Math.sin(now * 0.005)) * 0.16;
+      if (!leftActive && !rightActive) {
+        leftButton.alpha = pulse;
+        rightButton.alpha = pulse;
+      }
     }
 
     if (gameState !== "playing") {
@@ -1021,6 +1138,20 @@
     }
 
     car.x += (targetX - car.x) * (isMobile ? 0.24 : 0.18);
+
+    if (car.bump) {
+      car.bump *= 0.82;
+      const squash = 1 + car.bump * 0.25;
+      const stretch = 1 - car.bump * 0.15;
+      car.scale.set(
+        (isMobile ? 0.18 : 0.16) * squash,
+        (isMobile ? 0.18 : 0.16) * stretch
+      );
+      if (car.bump < 0.02) {
+        car.bump = 0;
+        car.scale.set(isMobile ? 0.18 : 0.16);
+      }
+    }
 
     if (Math.random() < 0.35) spawnSmoke();
     for (let i = smoke.length - 1; i >= 0; i--) {
@@ -1066,10 +1197,8 @@
 
     if (globalSpawnCooldown > 0) globalSpawnCooldown -= 1;
 
-    // EMP warning flicker just before spawn
     if (hazardSpawnTimer > pacing.empEvery - 16 && globalSpawnCooldown <= 0) {
       empWarningTimer = Math.max(empWarningTimer, 12);
-      empWarningSide = Math.random() > 0.5 ? "left" : "right";
     }
 
     hazardSpawnTimer += 1;
@@ -1106,6 +1235,9 @@
 
         if (o.kind === "coin") {
           coinCount += 1;
+          comboCount += 1;
+          bestCombo = Math.max(bestCombo, comboCount);
+          comboFlash = 1;
           maybeUpdateBest();
           playCoinPing();
           spawnCoinBurst(o.x, o.y);
@@ -1115,6 +1247,8 @@
         } else {
           stunnedUntil = now + 600;
           coinCount = 0;
+          comboCount = 0;
+          comboFlash = 0;
           flashAlpha = 0.24 + beat * 0.28;
           shakeIntensity = isMobile ? 16 : 12;
           glitchTimer = 220;
@@ -1160,12 +1294,7 @@
       empWarningTimer -= 1;
       warningOverlay.clear();
       const alpha = 0.06 + Math.abs(Math.sin(now * 0.04)) * 0.14;
-
-      if (empWarningSide === "left") {
-        warningOverlay.rect(0, 0, w * 0.18, h).fill({ color: 0xff4f8d, alpha });
-      } else {
-        warningOverlay.rect(w * 0.82, 0, w * 0.18, h).fill({ color: 0xff4f8d, alpha });
-      }
+      warningOverlay.rect(0, 0, w, h).fill({ color: 0xff4f8d, alpha: alpha * 0.12 });
       warningOverlay.alpha = 1;
     } else {
       warningOverlay.clear();
@@ -1182,7 +1311,8 @@
       const wasNewBest = maybeUpdateBest();
       endedScore.text = `COINS: ${coinCount}`;
       endedBest.text = `BEST: ${bestCoins}`;
-      endedBadge.text = wasNewBest ? "NEW BEST" : "";
+      endedCombo.text = `BEST COMBO: ${bestCombo}`;
+      endedBadge.text = wasNewBest ? "NEW BEST" : comboCount >= 10 ? "HOT STREAK" : "";
       gameState = "ended";
       endedScreen.visible = true;
       mobileControls.visible = false;
@@ -1190,3 +1320,4 @@
   });
 
   updateBestDisplays();
+  drawMobileButtons(false, false);
