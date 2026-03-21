@@ -20,6 +20,7 @@
 
   const w = app.screen.width;
   const h = app.screen.height;
+  const isMobile = w < 768;
 
   const SONG_URL = "https://raw.githubusercontent.com/dmsatx357/whalers-test/main/THEMS%20THE%20BREAKS%20DIG%20MASTER%2001_07.mp3";
   const CAR_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/car.png";
@@ -28,11 +29,24 @@
   const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
   const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
 
+  const TIMES = {
+    intro: 0,
+    verse: 9,
+    prechorus: 41,
+    chorus1: 58,
+    chorusOutro: 90,
+    guitarSolo: 106,
+    chorus2: 123,
+    bridge: 139,
+    outro: 164
+  };
+
   const horizonY = h * 0.81;
-  const roadBottomLeft = w * 0.28;
-  const roadBottomRight = w * 0.72;
-  const roadTopLeft = w * 0.465;
-  const roadTopRight = w * 0.535;
+
+  const roadBottomLeft = isMobile ? w * 0.12 : w * 0.28;
+  const roadBottomRight = isMobile ? w * 0.88 : w * 0.72;
+  const roadTopLeft = isMobile ? w * 0.40 : w * 0.465;
+  const roadTopRight = isMobile ? w * 0.60 : w * 0.535;
 
   function lerp(a, b, t) {
     return a + (b - a) * t;
@@ -41,6 +55,30 @@
   function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
   }
+
+  function getSection(t) {
+    if (t >= TIMES.outro) return "outro";
+    if (t >= TIMES.bridge) return "bridge";
+    if (t >= TIMES.chorus2) return "chorus2";
+    if (t >= TIMES.guitarSolo) return "guitarSolo";
+    if (t >= TIMES.chorusOutro) return "chorusOutro";
+    if (t >= TIMES.chorus1) return "chorus1";
+    if (t >= TIMES.prechorus) return "prechorus";
+    if (t >= TIMES.verse) return "verse";
+    return "intro";
+  }
+
+  const SECTION_PACING = {
+    intro: { empEvery: 130, coinEvery: 150, cooldown: 34, speed: 0.0105 },
+    verse: { empEvery: 108, coinEvery: 128, cooldown: 30, speed: 0.0115 },
+    prechorus: { empEvery: 92, coinEvery: 132, cooldown: 28, speed: 0.0125 },
+    chorus1: { empEvery: 76, coinEvery: 142, cooldown: 24, speed: 0.0145 },
+    chorusOutro: { empEvery: 98, coinEvery: 126, cooldown: 28, speed: 0.0120 },
+    guitarSolo: { empEvery: 86, coinEvery: 118, cooldown: 24, speed: 0.0140 },
+    chorus2: { empEvery: 72, coinEvery: 136, cooldown: 22, speed: 0.0150 },
+    bridge: { empEvery: 120, coinEvery: 108, cooldown: 30, speed: 0.0110 },
+    outro: { empEvery: 112, coinEvery: 116, cooldown: 30, speed: 0.0105 }
+  };
 
   const song = new Audio(SONG_URL);
   song.preload = "auto";
@@ -54,6 +92,7 @@
   let low = 0;
   let mid = 0;
   let high = 0;
+  let audioUnlocked = false;
 
   function setupAudio() {
     if (audioCtx) return;
@@ -65,10 +104,33 @@
     analyser.connect(audioCtx.destination);
   }
 
+  async function unlockAudio() {
+    try {
+      setupAudio();
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+      song.muted = true;
+      await song.play();
+      song.pause();
+      song.currentTime = 0;
+      song.muted = false;
+      audioUnlocked = true;
+    } catch (e) {
+      console.log("audio unlock blocked", e);
+    }
+  }
+
   async function startSong() {
     try {
       setupAudio();
-      if (audioCtx.state === "suspended") await audioCtx.resume();
+      if (!audioUnlocked) {
+        await unlockAudio();
+      }
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+      song.muted = false;
       await song.play();
     } catch (e) {
       console.log("song blocked", e);
@@ -128,6 +190,7 @@
   let gridScroll = 0;
   let hazardSpawnTimer = 0;
   let coinSpawnTimer = 0;
+  let globalSpawnCooldown = 0;
   let flashAlpha = 0;
   let touchHeld = false;
   let touchSide = null;
@@ -260,8 +323,8 @@
   const car = new PIXI.Sprite(carTexture);
   car.anchor.set(0.5);
   car.x = w / 2;
-  car.y = h - 54;
-  car.scale.set(0.16);
+  car.y = h - (isMobile ? 72 : 54);
+  car.scale.set(isMobile ? 0.18 : 0.16);
   world.addChild(car);
 
   const smokeContainer = new PIXI.Container();
@@ -285,8 +348,13 @@
   const obstacles = [];
 
   function laneX(lane, depth) {
-    const top = [0.12, 0.32, 0.50, 0.68, 0.88];
-    const bottom = [0.08, 0.30, 0.50, 0.70, 0.92];
+    const top = isMobile
+      ? [0.08, 0.29, 0.50, 0.71, 0.92]
+      : [0.12, 0.32, 0.50, 0.68, 0.88];
+    const bottom = isMobile
+      ? [0.05, 0.27, 0.50, 0.73, 0.95]
+      : [0.08, 0.30, 0.50, 0.70, 0.92];
+
     return lerp(
       lerp(roadTopLeft, roadTopRight, top[lane]),
       lerp(roadBottomLeft, roadBottomRight, bottom[lane]),
@@ -376,8 +444,8 @@
   }
 
   function isColliding(a, b) {
-    const aHalfW = 24;
-    const aHalfH = 38;
+    const aHalfW = isMobile ? 30 : 24;
+    const aHalfH = isMobile ? 44 : 38;
     const bScale = b.scale.x || 1;
     const bHalfW = b.kind === "coin" ? 85 * bScale : 18 * bScale;
     const bHalfH = b.kind === "coin" ? 85 * bScale : 24 * bScale;
@@ -539,6 +607,7 @@
     gridScroll = 0;
     hazardSpawnTimer = 0;
     coinSpawnTimer = 0;
+    globalSpawnCooldown = 0;
     coinCount = 0;
     counterValue.text = "0";
     gameState = "playing";
@@ -552,25 +621,30 @@
     await startGame();
   }
 
+  document.addEventListener("touchstart", unlockAudio, { passive: true });
+  document.addEventListener("click", unlockAudio, { passive: true });
+
   window.addEventListener("keydown", (e) => {
     if (gameState !== "playing") return;
     if (performance.now() < stunnedUntil) return;
     if (e.key === "ArrowLeft") targetX -= 130;
     if (e.key === "ArrowRight") targetX += 130;
-    targetX = clamp(targetX, roadBottomLeft + 38, roadBottomRight - 38);
+    targetX = clamp(targetX, roadBottomLeft + 40, roadBottomRight - 40);
   });
 
   function handleTouchMove(clientX) {
     if (gameState !== "playing") return;
     if (performance.now() < stunnedUntil) return;
 
-    if (clientX < w / 2) targetX -= 18;
-    else targetX += 18;
+    if (clientX < w / 2) targetX -= isMobile ? 26 : 18;
+    else targetX += isMobile ? 26 : 18;
 
-    targetX = clamp(targetX, roadBottomLeft + 38, roadBottomRight - 38);
+    targetX = clamp(targetX, roadBottomLeft + 40, roadBottomRight - 40);
   }
 
   window.addEventListener("pointerdown", async (e) => {
+    await unlockAudio();
+
     if (gameState === "title") {
       await startGame();
       return;
@@ -601,6 +675,9 @@
 
   app.ticker.add(() => {
     const now = performance.now();
+    const t = song.currentTime || 0;
+    const section = getSection(t);
+    const pacing = SECTION_PACING[section];
 
     updateAudio();
 
@@ -641,11 +718,11 @@
     }
 
     if (touchHeld && touchSide && now >= stunnedUntil) {
-      targetX += touchSide === "left" ? -18 : 18;
-      targetX = clamp(targetX, roadBottomLeft + 38, roadBottomRight - 38);
+      targetX += touchSide === "left" ? (isMobile ? -26 : -18) : (isMobile ? 26 : 18);
+      targetX = clamp(targetX, roadBottomLeft + 40, roadBottomRight - 40);
     }
 
-    car.x += (targetX - car.x) * 0.14;
+    car.x += (targetX - car.x) * (isMobile ? 0.18 : 0.14);
 
     if (Math.random() < 0.35) spawnSmoke();
     for (let i = smoke.length - 1; i >= 0; i--) {
@@ -662,21 +739,25 @@
       }
     }
 
+    if (globalSpawnCooldown > 0) globalSpawnCooldown -= 1;
+
     hazardSpawnTimer += 1;
-    if (hazardSpawnTimer > 62) {
+    if (hazardSpawnTimer > pacing.empEvery && globalSpawnCooldown <= 0) {
       spawnEMP();
       hazardSpawnTimer = 0;
+      globalSpawnCooldown = pacing.cooldown;
     }
 
     coinSpawnTimer += 1;
-    if (coinSpawnTimer > 92) {
+    if (coinSpawnTimer > pacing.coinEvery && globalSpawnCooldown <= 0) {
       spawnCoin();
       coinSpawnTimer = 0;
+      globalSpawnCooldown = pacing.cooldown;
     }
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
-      updateObstacle(o, 0.012 * (1 + beat * 0.25), now);
+      updateObstacle(o, pacing.speed * (1 + beat * 0.25), now);
 
       if (!o.hit && now >= stunnedUntil && isColliding(car, o)) {
         o.hit = true;
