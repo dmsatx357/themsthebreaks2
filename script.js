@@ -407,87 +407,6 @@ skyline.filters = [fadeBlur];
 sun.filters = [fadeBlur];
 sunGlow.filters = [fadeBlur];
 
-function drawSideLines(scroll, section) {
-  sideLines.clear();
-
-  const vis = SECTION_VISUALS[section];
-
-  for (let i = 0; i < 8; i++) {
-    let t = (i / 8 + scroll) % 1;
-    t = t * t;
-
-    const y = lerp(horizonY + 10, h, t);
-    const leftRoadX = lerp(roadTopLeft, roadBottomLeft, t);
-    const rightRoadX = lerp(roadTopRight, roadBottomRight, t);
-    const leftEnd = leftRoadX - lerp(20, 60, t);
-    const rightStart = rightRoadX + lerp(20, 60, t);
-
-    const baseAlpha = lerp(0.05, vis.baseAlpha, t);
-    const flashBoost = beat > 0.06 ? (0.08 + beat * vis.flashBoost) : 0;
-
-    sideLines.moveTo(0, y);
-    sideLines.lineTo(leftEnd, y);
-    sideLines.stroke({
-      color: vis.baseColor,
-      width: lerp(1, 3.8 * vis.widthBoost, t),
-      alpha: baseAlpha
-    });
-
-    sideLines.moveTo(rightStart, y);
-    sideLines.lineTo(w, y);
-    sideLines.stroke({
-      color: vis.baseColor,
-      width: lerp(1, 3.8 * vis.widthBoost, t),
-      alpha: baseAlpha
-    });
-
-    if (beat > 0.05 || section === "finalDrive" || section === "fade") {
-      sideLines.moveTo(0, y);
-      sideLines.lineTo(leftEnd, y);
-      sideLines.stroke({
-        color: vis.flashColor,
-        width: lerp(1.4, 5.2 * vis.widthBoost, t),
-        alpha: flashBoost
-      });
-
-      sideLines.moveTo(rightStart, y);
-      sideLines.lineTo(w, y);
-      sideLines.stroke({
-        color: vis.flashColor,
-        width: lerp(1.4, 5.2 * vis.widthBoost, t),
-        alpha: flashBoost
-      });
-    }
-  }
-}
-
-function drawHorizonWarning(alpha = 0) {
-  horizonWarning.clear();
-  if (pendingEmpLane === null || alpha <= 0) return;
-
-  const x = laneWorldX(pendingEmpLane, 0.01);
-  const y = horizonY + 2;
-
-  horizonWarning.circle(x, y, 10 + beat * 16).fill({
-    color: 0xffc0dd,
-    alpha: alpha * 0.45
-  });
-
-  horizonWarning.ellipse(x, y + 2, 28 + beat * 24, 8 + beat * 4).fill({
-    color: 0xff4fa3,
-    alpha: alpha * 0.32
-  });
-
-  horizonWarning.moveTo(x, y - 8);
-  horizonWarning.lineTo(x - 8, y + 6);
-  horizonWarning.lineTo(x + 8, y + 6);
-  horizonWarning.closePath();
-  horizonWarning.fill({
-    color: 0xffffff,
-    alpha: alpha * 0.55
-  });
-}
-
 const car = new PIXI.Sprite(carTexture);
 car.anchor.set(0.5);
 car.x = targetX;
@@ -500,18 +419,6 @@ const smokeContainer = new PIXI.Container();
 world.addChild(smokeContainer);
 const smoke = [];
 
-function spawnSmoke() {
-  const puff = new PIXI.Graphics();
-  puff.circle(0, 0, 12).fill({ color: 0xffffff, alpha: 0.16 });
-  puff.x = car.x + (Math.random() * 24 - 12);
-  puff.y = car.y + 24;
-  puff.vx = Math.random() * 0.6 - 0.3;
-  puff.vy = -0.8 - Math.random() * 0.4;
-  puff.life = 1;
-  smokeContainer.addChild(puff);
-  smoke.push(puff);
-}
-
 const obstacleContainer = new PIXI.Container();
 const fxContainer = new PIXI.Container();
 world.addChild(obstacleContainer);
@@ -521,222 +428,6 @@ const obstacles = [];
 const pickupBursts = [];
 const floatingTexts = [];
 
-function spawnCoinBurst(x, y, value = 1) {
-  for (let i = 0; i < (value === 3 ? 16 : 10); i++) {
-    const spark = new PIXI.Graphics();
-    spark.circle(0, 0, Math.random() * 3 + 1.5).fill(
-      value === 3
-        ? (i % 2 === 0 ? 0xff8fd2 : 0xfff7b2)
-        : (i % 2 === 0 ? 0xfff7b2 : 0xff8fd2)
-    );
-    spark.x = x;
-    spark.y = y;
-    spark.vx = (Math.random() - 0.5) * (value === 3 ? 7 : 5.5);
-    spark.vy = (Math.random() - 0.5) * (value === 3 ? 7 : 5.5) - 1;
-    spark.life = 1;
-    fxContainer.addChild(spark);
-    pickupBursts.push(spark);
-  }
-
-  const txt = new PIXI.Text({
-    text: value === 3 ? "+3" : "+1",
-    style: {
-      fontFamily: "Arial",
-      fontSize: value === 3 ? 28 : 24,
-      fontWeight: "900",
-      fill: "#fff5bf",
-      stroke: value === 3 ? "#ff6bb4" : "#ff4fa3",
-      strokeThickness: 2
-    }
-  });
-  txt.anchor.set(0.5);
-  txt.x = x;
-  txt.y = y - 10;
-  txt.life = 1;
-  txt.vy = -1.1;
-  fxContainer.addChild(txt);
-  floatingTexts.push(txt);
-}
-
-function makeEMP() {
-  const g = new PIXI.Graphics();
-  g.kind = "emp";
-  g.redraw = () => {
-    g.clear();
-    for (let i = 0; i < 3; i++) {
-      let x = 0;
-      let y = -20;
-      g.moveTo(x, y);
-      for (let j = 0; j < 6; j++) {
-        x += (Math.random() - 0.5) * 15;
-        y += 8;
-        g.lineTo(x, y);
-      }
-      g.stroke({ color: 0xb8f1ff, width: 3, alpha: 0.95 });
-    }
-  };
-  g.redraw();
-  return g;
-}
-
-function makeCoin() {
-  const wrap = new PIXI.Container();
-
-  const glow = new PIXI.Graphics();
-  glow.circle(0, 0, 40).fill({ color: 0xfff2a8, alpha: 0.14 });
-  wrap.addChild(glow);
-
-  const coin = new PIXI.Sprite(coinTexture);
-  coin.anchor.set(0.5);
-  wrap.addChild(coin);
-
-  wrap.kind = "coin";
-  wrap.coin = coin;
-  wrap.glow = glow;
-  wrap.spinOffset = Math.random() * 1000;
-  return wrap;
-}
-
-function makeBigCoin() {
-  const wrap = new PIXI.Container();
-
-  const glow = new PIXI.Graphics();
-  glow.circle(0, 0, 70).fill({ color: 0xff4fa3, alpha: 0.18 });
-  wrap.addChild(glow);
-
-  const coin = new PIXI.Sprite(coinTexture);
-  coin.anchor.set(0.5);
-  wrap.addChild(coin);
-
-  wrap.kind = "bigcoin";
-  wrap.coin = coin;
-  wrap.glow = glow;
-  wrap.spinOffset = Math.random() * 1000;
-  return wrap;
-}
-
-function spawnEMPAtLane(lane, progress = 0) {
-  const obj = makeEMP();
-  obj.lane = lane;
-  obj.progress = progress;
-  obj.hit = false;
-  obstacleContainer.addChild(obj);
-  obstacles.push(obj);
-}
-
-function spawnEMP(lane = null) {
-  const resolvedLane = lane ?? Math.floor(Math.random() * 5);
-  spawnEMPAtLane(resolvedLane, 0);
-}
-
-function spawnCoin() {
-  const lane = Math.floor(Math.random() * 5);
-  const obj = makeCoin();
-  obj.lane = lane;
-  obj.progress = 0;
-  obj.hit = false;
-  obstacleContainer.addChild(obj);
-  obstacles.push(obj);
-}
-
-function spawnBigCoin() {
-  const dangerousLanes = [1, 2, 3];
-  const lane = dangerousLanes[Math.floor(Math.random() * dangerousLanes.length)];
-  const obj = makeBigCoin();
-  obj.lane = lane;
-  obj.progress = 0;
-  obj.hit = false;
-  obstacleContainer.addChild(obj);
-  obstacles.push(obj);
-}
-
-function spawnFinalPattern() {
-  const patternType = Math.floor(Math.random() * 3);
-
-  if (patternType === 0) {
-    const safeLane = Math.floor(Math.random() * 5);
-    for (let l = 0; l < 5; l++) {
-      if (l !== safeLane) spawnEMPAtLane(l, 0.14);
-    }
-    if (Math.random() < 0.65) {
-      const baitLane = clamp(safeLane + (Math.random() > 0.5 ? 1 : -1), 0, 4);
-      const big = makeBigCoin();
-      big.lane = baitLane;
-      big.progress = 0.08;
-      big.hit = false;
-      obstacleContainer.addChild(big);
-      obstacles.push(big);
-    }
-  } else if (patternType === 1) {
-    spawnEMPAtLane(0, 0.12);
-    spawnEMPAtLane(4, 0.12);
-    spawnEMPAtLane(1, 0.06);
-    spawnEMPAtLane(3, 0.06);
-    const big = makeBigCoin();
-    big.lane = 2;
-    big.progress = 0.02;
-    big.hit = false;
-    obstacleContainer.addChild(big);
-    obstacles.push(big);
-  } else {
-    spawnEMPAtLane(1, 0.14);
-    spawnEMPAtLane(3, 0.14);
-    const coin = makeBigCoin();
-    coin.lane = Math.random() > 0.5 ? 0 : 4;
-    coin.progress = 0.04;
-    coin.hit = false;
-    obstacleContainer.addChild(coin);
-    obstacles.push(coin);
-  }
-}
-
-function updateObstacle(o, speed, now) {
-  o.progress += speed;
-  const depth = o.progress * o.progress;
-  o.x = laneWorldX(o.lane, depth);
-  o.y = lerp(horizonY + 12, h + 70, depth);
-
-  if (o.kind === "coin") {
-    const s = lerp(0.03, 0.18, depth);
-    o.scale.set(s);
-    o.alpha = lerp(0.6, 1, depth);
-    o.rotation = Math.sin(now * 0.01 + o.spinOffset) * 0.15;
-    o.coin.scale.x = 0.9 + Math.abs(Math.sin(now * 0.012 + o.spinOffset)) * 0.35;
-    o.glow.alpha = lerp(0.10, 0.22, depth) * (1 + beat * 0.18);
-  } else if (o.kind === "bigcoin") {
-    const s = lerp(0.05, 0.26, depth);
-    o.scale.set(s);
-    o.alpha = lerp(0.72, 1, depth);
-    o.rotation = Math.sin(now * 0.01 + o.spinOffset) * 0.2;
-    o.coin.scale.x = 0.8 + Math.abs(Math.sin(now * 0.014 + o.spinOffset)) * 0.5;
-    o.glow.alpha = lerp(0.2, 0.4, depth) * (1 + beat * 0.4);
-  } else {
-    const s = lerp(0.18, 1.6, depth);
-    o.scale.set(s);
-    o.alpha = lerp(0.4, 1, depth);
-    if (Math.random() < 0.18) o.redraw();
-    o.rotation = Math.sin(now * 0.01) * 0.06;
-  }
-}
-
-function isColliding(a, b) {
-  const aHalfW = isMobile ? 30 : 24;
-  const aHalfH = isMobile ? 44 : 38;
-  const bScale = b.scale.x || 1;
-  const bHalfW =
-    b.kind === "bigcoin" ? 110 * bScale :
-    b.kind === "coin" ? 85 * bScale :
-    18 * bScale;
-  const bHalfH =
-    b.kind === "bigcoin" ? 110 * bScale :
-    b.kind === "coin" ? 85 * bScale :
-    24 * bScale;
-
-  return (
-    Math.abs(a.x - b.x) < aHalfW + bHalfW &&
-    Math.abs(a.y - b.y) < aHalfH + bHalfH
-  );
-}
 const flash = new PIXI.Graphics();
 flash.rect(0, 0, w, h).fill(0xffffff);
 flash.alpha = 0;
@@ -853,34 +544,6 @@ mobileControls.visible = false;
 const leftButton = new PIXI.Graphics();
 const rightButton = new PIXI.Graphics();
 
-function drawMobileButtons(leftActive = false, rightActive = false) {
-  leftButton.clear();
-  rightButton.clear();
-
-  leftButton.roundRect(18, h - 92, 74, 58, 16).fill({
-    color: leftActive ? 0x4fc3ff : 0xffffff,
-    alpha: leftActive ? 0.18 : 0.08
-  });
-  leftButton.stroke({
-    color: leftActive ? 0xeafcff : 0x7fdcff,
-    width: 2,
-    alpha: leftActive ? 0.7 : 0.35
-  });
-
-  rightButton.roundRect(w - 92, h - 92, 74, 58, 16).fill({
-    color: rightActive ? 0x4fc3ff : 0xffffff,
-    alpha: rightActive ? 0.18 : 0.08
-  });
-  rightButton.stroke({
-    color: rightActive ? 0xeafcff : 0x7fdcff,
-    width: 2,
-    alpha: rightActive ? 0.7 : 0.35
-  });
-}
-
-mobileControls.addChild(leftButton);
-mobileControls.addChild(rightButton);
-
 const leftArrow = new PIXI.Text({
   text: "◀",
   style: {
@@ -893,7 +556,6 @@ const leftArrow = new PIXI.Text({
 leftArrow.anchor.set(0.5);
 leftArrow.x = 55;
 leftArrow.y = h - 63;
-mobileControls.addChild(leftArrow);
 
 const rightArrow = new PIXI.Text({
   text: "▶",
@@ -907,6 +569,10 @@ const rightArrow = new PIXI.Text({
 rightArrow.anchor.set(0.5);
 rightArrow.x = w - 55;
 rightArrow.y = h - 63;
+
+mobileControls.addChild(leftButton);
+mobileControls.addChild(rightButton);
+mobileControls.addChild(leftArrow);
 mobileControls.addChild(rightArrow);
 
 const titleScreen = new PIXI.Container();
@@ -1097,6 +763,31 @@ endedBadge.x = w / 2;
 endedBadge.y = h / 2 + 88;
 endedScreen.addChild(endedBadge);
 
+function drawMobileButtons(leftActive = false, rightActive = false) {
+  leftButton.clear();
+  rightButton.clear();
+
+  leftButton.roundRect(18, h - 92, 74, 58, 16).fill({
+    color: leftActive ? 0x4fc3ff : 0xffffff,
+    alpha: leftActive ? 0.18 : 0.08
+  });
+  leftButton.stroke({
+    color: leftActive ? 0xeafcff : 0x7fdcff,
+    width: 2,
+    alpha: leftActive ? 0.7 : 0.35
+  });
+
+  rightButton.roundRect(w - 92, h - 92, 74, 58, 16).fill({
+    color: rightActive ? 0x4fc3ff : 0xffffff,
+    alpha: rightActive ? 0.18 : 0.08
+  });
+  rightButton.stroke({
+    color: rightActive ? 0xeafcff : 0x7fdcff,
+    width: 2,
+    alpha: rightActive ? 0.7 : 0.35
+  });
+}
+
 function updateBestDisplays() {
   bestValue.text = String(bestCoins);
   titleBest.text = `BEST COINS: ${bestCoins}`;
@@ -1127,21 +818,54 @@ function clearAll() {
   floatingTexts.length = 0;
 }
 
-song.addEventListener("ended", () => {
-  if (gameState === "playing") {
-    const wasNewBest = maybeUpdateBest();
-    endedScore.text = `COINS: ${coinCount}`;
-    endedBest.text = `BEST: ${bestCoins}`;
-    endedCombo.text = `BEST COMBO: ${bestCombo}`;
-    endedBadge.text = wasNewBest ? "NEW BEST" : bestCombo >= 10 ? "HOT STREAK" : "";
-    gameState = "ended";
-    endedScreen.visible = true;
-    mobileControls.visible = false;
-  }
-});
+function spawnSmoke() {
+  const puff = new PIXI.Graphics();
+  puff.circle(0, 0, 12).fill({ color: 0xffffff, alpha: 0.16 });
+  puff.x = car.x + (Math.random() * 24 - 12);
+  puff.y = car.y + 24;
+  puff.vx = Math.random() * 0.6 - 0.3;
+  puff.vy = -0.8 - Math.random() * 0.4;
+  puff.life = 1;
+  smokeContainer.addChild(puff);
+  smoke.push(puff);
+}
 
-updateBestDisplays();
-drawMobileButtons(false, false);
+function spawnCoinBurst(x, y, value = 1) {
+  for (let i = 0; i < (value === 3 ? 16 : 10); i++) {
+    const spark = new PIXI.Graphics();
+    spark.circle(0, 0, Math.random() * 3 + 1.5).fill(
+      value === 3
+        ? (i % 2 === 0 ? 0xff8fd2 : 0xfff7b2)
+        : (i % 2 === 0 ? 0xfff7b2 : 0xff8fd2)
+    );
+    spark.x = x;
+    spark.y = y;
+    spark.vx = (Math.random() - 0.5) * (value === 3 ? 7 : 5.5);
+    spark.vy = (Math.random() - 0.5) * (value === 3 ? 7 : 5.5) - 1;
+    spark.life = 1;
+    fxContainer.addChild(spark);
+    pickupBursts.push(spark);
+  }
+
+  const txt = new PIXI.Text({
+    text: value === 3 ? "+3" : "+1",
+    style: {
+      fontFamily: "Arial",
+      fontSize: value === 3 ? 28 : 24,
+      fontWeight: "900",
+      fill: "#fff5bf",
+      stroke: value === 3 ? "#ff6bb4" : "#ff4fa3",
+      strokeThickness: 2
+    }
+  });
+  txt.anchor.set(0.5);
+  txt.x = x;
+  txt.y = y - 10;
+  txt.life = 1;
+  txt.vy = -1.1;
+  fxContainer.addChild(txt);
+  floatingTexts.push(txt);
+}
 
 async function startGame() {
   clearAll();
