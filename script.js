@@ -33,9 +33,9 @@ const SKYLINE_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2
 const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
 const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
 const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
-const BEST_KEY = "whalers_best_coins_v10";
-const FINAL_SPRINT_TIME = 189;   // 3:09
-const FINAL_SPRINT_END = 205;    // 3:25
+const BEST_KEY = "whalers_best_coins_v11";
+const FINAL_SPRINT_TIME = 189;
+const FINAL_SPRINT_END = 205;
 
 const TIMES = {
   intro: 0,
@@ -63,144 +63,25 @@ const SECTION_PACING = {
   bridge:      { empEvery: 140, coinEvery: 108, cooldown: 38, speed: 0.0102 },
   break:       { empEvery: 188, coinEvery: 96,  cooldown: 46, speed: 0.0082 },
   rebuild:     { empEvery: 96,  coinEvery: 118, cooldown: 28, speed: 0.0134 },
-  finalDrive:  { empEvery: 66,  coinEvery: 128, cooldown: 26, speed: 0.0172 },
-  fade:        { empEvery: 9999, coinEvery: 9999, cooldown: 9999, speed: 0.0108 }
+  finalDrive:  { empEvery: 72,  coinEvery: 128, cooldown: 30, speed: 0.0168 },
+  fade:        { empEvery: 9999, coinEvery: 9999, cooldown: 9999, speed: 0.0112 }
 };
 
 const SECTION_VISUALS = {
-  intro: {
-    baseColor: 0x2d4264,
-    flashColor: 0x9fdcff,
-    widthBoost: 0.95,
-    baseAlpha: 0.12,
-    flashBoost: 0.28,
-    logoGlow: 0.15,
-    logoScale: 0.285,
-    sunGlow: 0.15,
-    sunScale: 0.48
-  },
-  drums: {
-    baseColor: 0x3f6190,
-    flashColor: 0xc7ecff,
-    widthBoost: 1.02,
-    baseAlpha: 0.15,
-    flashBoost: 0.34,
-    logoGlow: 0.17,
-    logoScale: 0.287,
-    sunGlow: 0.17,
-    sunScale: 0.485
-  },
-  guitar: {
-    baseColor: 0x5c76b0,
-    flashColor: 0xe0efff,
-    widthBoost: 1.08,
-    baseAlpha: 0.18,
-    flashBoost: 0.40,
-    logoGlow: 0.18,
-    logoScale: 0.289,
-    sunGlow: 0.18,
-    sunScale: 0.49
-  },
-  prechorus: {
-    baseColor: 0x795bb0,
-    flashColor: 0xf3c8ff,
-    widthBoost: 1.14,
-    baseAlpha: 0.22,
-    flashBoost: 0.48,
-    logoGlow: 0.21,
-    logoScale: 0.292,
-    sunGlow: 0.20,
-    sunScale: 0.495
-  },
-  chorus: {
-    baseColor: 0xb04fa3,
-    flashColor: 0xff9bd8,
-    widthBoost: 1.28,
-    baseAlpha: 0.28,
-    flashBoost: 0.64,
-    logoGlow: 0.25,
-    logoScale: 0.296,
-    sunGlow: 0.23,
-    sunScale: 0.505
-  },
-  chorusOutro: {
-    baseColor: 0x716aa8,
-    flashColor: 0xd7caff,
-    widthBoost: 1.10,
-    baseAlpha: 0.18,
-    flashBoost: 0.36,
-    logoGlow: 0.18,
-    logoScale: 0.288,
-    sunGlow: 0.17,
-    sunScale: 0.49
-  },
-  solo: {
-    baseColor: 0x9749ad,
-    flashColor: 0xffa5e3,
-    widthBoost: 1.24,
-    baseAlpha: 0.24,
-    flashBoost: 0.58,
-    logoGlow: 0.23,
-    logoScale: 0.295,
-    sunGlow: 0.22,
-    sunScale: 0.502
-  },
-  bridge: {
-    baseColor: 0x4e6078,
-    flashColor: 0xb6ccff,
-    widthBoost: 0.96,
-    baseAlpha: 0.12,
-    flashBoost: 0.24,
-    logoGlow: 0.14,
-    logoScale: 0.282,
-    sunGlow: 0.13,
-    sunScale: 0.475
-  },
-  break: {
-    baseColor: 0x2d3440,
-    flashColor: 0x77839a,
-    widthBoost: 0.82,
-    baseAlpha: 0.08,
-    flashBoost: 0.14,
-    logoGlow: 0.10,
-    logoScale: 0.279,
-    sunGlow: 0.10,
-    sunScale: 0.465
-  },
-  rebuild: {
-    baseColor: 0x8b43a1,
-    flashColor: 0xff89ca,
-    widthBoost: 1.18,
-    baseAlpha: 0.22,
-    flashBoost: 0.50,
-    logoGlow: 0.21,
-    logoScale: 0.293,
-    sunGlow: 0.20,
-    sunScale: 0.495
-  },
-  finalDrive: {
-    baseColor: 0xcf296d,
-    flashColor: 0xff2c84,
-    widthBoost: 1.72,
-    baseAlpha: 0.42,
-    flashBoost: 1.08,
-    logoGlow: 0.34,
-    logoScale: 0.314,
-    sunGlow: 0.31,
-    sunScale: 0.535
-  },
-  fade: {
-    baseColor: 0xff4fa3,
-    flashColor: 0xffc7e6,
-    widthBoost: 1.95,
-    baseAlpha: 0.28,
-    flashBoost: 0.48,
-    logoGlow: 0.24,
-    logoScale: 0.305,
-    sunGlow: 0.18,
-    sunScale: 0.52
-  }
+  intro: { baseColor: 0x2d4264, flashColor: 0x9fdcff, widthBoost: 0.95, baseAlpha: 0.12, flashBoost: 0.28, logoGlow: 0.15, logoScale: 0.285, sunGlow: 0.15, sunScale: 0.48 },
+  drums: { baseColor: 0x3f6190, flashColor: 0xc7ecff, widthBoost: 1.02, baseAlpha: 0.15, flashBoost: 0.34, logoGlow: 0.17, logoScale: 0.287, sunGlow: 0.17, sunScale: 0.485 },
+  guitar: { baseColor: 0x5c76b0, flashColor: 0xe0efff, widthBoost: 1.08, baseAlpha: 0.18, flashBoost: 0.40, logoGlow: 0.18, logoScale: 0.289, sunGlow: 0.18, sunScale: 0.49 },
+  prechorus: { baseColor: 0x795bb0, flashColor: 0xf3c8ff, widthBoost: 1.14, baseAlpha: 0.22, flashBoost: 0.48, logoGlow: 0.21, logoScale: 0.292, sunGlow: 0.20, sunScale: 0.495 },
+  chorus: { baseColor: 0xb04fa3, flashColor: 0xff9bd8, widthBoost: 1.28, baseAlpha: 0.28, flashBoost: 0.64, logoGlow: 0.25, logoScale: 0.296, sunGlow: 0.23, sunScale: 0.505 },
+  chorusOutro: { baseColor: 0x716aa8, flashColor: 0xd7caff, widthBoost: 1.10, baseAlpha: 0.18, flashBoost: 0.36, logoGlow: 0.18, logoScale: 0.288, sunGlow: 0.17, sunScale: 0.49 },
+  solo: { baseColor: 0x9749ad, flashColor: 0xffa5e3, widthBoost: 1.24, baseAlpha: 0.24, flashBoost: 0.58, logoGlow: 0.23, logoScale: 0.295, sunGlow: 0.22, sunScale: 0.502 },
+  bridge: { baseColor: 0x4e6078, flashColor: 0xb6ccff, widthBoost: 0.96, baseAlpha: 0.12, flashBoost: 0.24, logoGlow: 0.14, logoScale: 0.282, sunGlow: 0.13, sunScale: 0.475 },
+  break: { baseColor: 0x2d3440, flashColor: 0x77839a, widthBoost: 0.82, baseAlpha: 0.08, flashBoost: 0.14, logoGlow: 0.10, logoScale: 0.279, sunGlow: 0.10, sunScale: 0.465 },
+  rebuild: { baseColor: 0x8b43a1, flashColor: 0xff89ca, widthBoost: 1.18, baseAlpha: 0.22, flashBoost: 0.50, logoGlow: 0.21, logoScale: 0.293, sunGlow: 0.20, sunScale: 0.495 },
+  finalDrive: { baseColor: 0xcf296d, flashColor: 0xff2c84, widthBoost: 1.72, baseAlpha: 0.42, flashBoost: 1.08, logoGlow: 0.34, logoScale: 0.314, sunGlow: 0.31, sunScale: 0.535 },
+  fade: { baseColor: 0xff4fa3, flashColor: 0xffc7e6, widthBoost: 2.05, baseAlpha: 0.30, flashBoost: 0.62, logoGlow: 0.26, logoScale: 0.31, sunGlow: 0.20, sunScale: 0.54 }
 };
+
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
@@ -582,7 +463,7 @@ function drawSideLines(scroll, section) {
 
 function drawHorizonWarning(alpha = 0) {
   horizonWarning.clear();
-  if (!pendingEmpLane || alpha <= 0) return;
+  if (pendingEmpLane === null || alpha <= 0) return;
 
   const x = laneWorldX(pendingEmpLane, 0.01);
   const y = horizonY + 2;
@@ -857,396 +738,6 @@ function isColliding(a, b) {
   );
 }
 
-const flash = new PIXI.Graphics();
-flash.rect(0, 0, w, h).fill(0xffffff);
-flash.alpha = 0;
-ui.addChild(flash);
-
-const beatPulse = new PIXI.Graphics();
-beatPulse.rect(0, 0, w, h).fill(0xff7ab4);
-beatPulse.alpha = 0;
-ui.addChild(beatPulse);
-
-const glitchOverlay = new PIXI.Graphics();
-glitchOverlay.alpha = 0;
-ui.addChild(glitchOverlay);
-
-const warningOverlay = new PIXI.Graphics();
-warningOverlay.alpha = 0;
-ui.addChild(warningOverlay);
-
-const counterLabel = new PIXI.Text({
-  text: "MITCH COINS",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 16,
-    fontWeight: "700",
-    fill: "#f3e9ff",
-    letterSpacing: 2
-  }
-});
-counterLabel.x = 22;
-counterLabel.y = 18;
-ui.addChild(counterLabel);
-
-const counterValue = new PIXI.Text({
-  text: "0",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 34,
-    fontWeight: "900",
-    fill: "#ffffff",
-    stroke: "#ff4fa3",
-    strokeThickness: 2
-  }
-});
-counterValue.x = 20;
-counterValue.y = 36;
-ui.addChild(counterValue);
-
-const bestLabel = new PIXI.Text({
-  text: "BEST",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 16,
-    fontWeight: "700",
-    fill: "#f3e9ff",
-    letterSpacing: 2
-  }
-});
-bestLabel.anchor.set(1, 0);
-bestLabel.x = w - 22;
-bestLabel.y = 18;
-ui.addChild(bestLabel);
-
-const bestValue = new PIXI.Text({
-  text: String(bestCoins),
-  style: {
-    fontFamily: "Arial",
-    fontSize: 34,
-    fontWeight: "900",
-    fill: "#ffffff",
-    stroke: "#69d5ff",
-    strokeThickness: 2
-  }
-});
-bestValue.anchor.set(1, 0);
-bestValue.x = w - 20;
-bestValue.y = 36;
-ui.addChild(bestValue);
-
-const comboLabel = new PIXI.Text({
-  text: "COMBO",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 14,
-    fontWeight: "700",
-    fill: "#f3e9ff",
-    letterSpacing: 2
-  }
-});
-comboLabel.anchor.set(0.5, 0);
-comboLabel.x = w / 2;
-comboLabel.y = 18;
-ui.addChild(comboLabel);
-
-const comboValue = new PIXI.Text({
-  text: "x0",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 28,
-    fontWeight: "900",
-    fill: "#fff7bf",
-    stroke: "#ff4fa3",
-    strokeThickness: 2
-  }
-});
-comboValue.anchor.set(0.5, 0);
-comboValue.x = w / 2;
-comboValue.y = 34;
-ui.addChild(comboValue);
-
-const mobileControls = new PIXI.Container();
-ui.addChild(mobileControls);
-mobileControls.visible = false;
-
-const leftButton = new PIXI.Graphics();
-const rightButton = new PIXI.Graphics();
-
-function drawMobileButtons(leftActive = false, rightActive = false) {
-  leftButton.clear();
-  rightButton.clear();
-
-  leftButton.roundRect(18, h - 92, 74, 58, 16).fill({
-    color: leftActive ? 0x4fc3ff : 0xffffff,
-    alpha: leftActive ? 0.18 : 0.08
-  });
-  leftButton.stroke({
-    color: leftActive ? 0xeafcff : 0x7fdcff,
-    width: 2,
-    alpha: leftActive ? 0.7 : 0.35
-  });
-
-  rightButton.roundRect(w - 92, h - 92, 74, 58, 16).fill({
-    color: rightActive ? 0x4fc3ff : 0xffffff,
-    alpha: rightActive ? 0.18 : 0.08
-  });
-  rightButton.stroke({
-    color: rightActive ? 0xeafcff : 0x7fdcff,
-    width: 2,
-    alpha: rightActive ? 0.7 : 0.35
-  });
-}
-
-mobileControls.addChild(leftButton);
-mobileControls.addChild(rightButton);
-
-const leftArrow = new PIXI.Text({
-  text: "◀",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 30,
-    fontWeight: "900",
-    fill: "#d7f4ff"
-  }
-});
-leftArrow.anchor.set(0.5);
-leftArrow.x = 55;
-leftArrow.y = h - 63;
-mobileControls.addChild(leftArrow);
-
-const rightArrow = new PIXI.Text({
-  text: "▶",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 30,
-    fontWeight: "900",
-    fill: "#d7f4ff"
-  }
-});
-rightArrow.anchor.set(0.5);
-rightArrow.x = w - 55;
-rightArrow.y = h - 63;
-mobileControls.addChild(rightArrow);
-
-const titleScreen = new PIXI.Container();
-ui.addChild(titleScreen);
-
-const titleFade = new PIXI.Graphics();
-titleFade.rect(0, 0, w, h).fill({ color: 0x050008, alpha: 0.60 });
-titleScreen.addChild(titleFade);
-
-const titleBox = new PIXI.Graphics();
-titleBox.roundRect(w / 2 - 290, h / 2 - 185, 580, 380, 24).fill({ color: 0x0b0610, alpha: 0.88 });
-titleBox.stroke({ color: 0x294866, width: 2, alpha: 0.55 });
-titleScreen.addChild(titleBox);
-
-const title1 = new PIXI.Text({
-  text: "WHALERS",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 58,
-    fontWeight: "900",
-    fill: "#e9dbe1",
-    stroke: "#7d193d",
-    strokeThickness: 2,
-    letterSpacing: 8
-  }
-});
-title1.anchor.set(0.5);
-title1.x = w / 2;
-title1.y = h / 2 - 120;
-titleScreen.addChild(title1);
-
-const title2 = new PIXI.Text({
-  text: "THEMS THE BREAKS",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 26,
-    fontWeight: "700",
-    fill: "#93a7bf",
-    letterSpacing: 4
-  }
-});
-title2.anchor.set(0.5);
-title2.x = w / 2;
-title2.y = h / 2 - 70;
-titleScreen.addChild(title2);
-
-const instructions = new PIXI.Text({
-  text: isMobile
-    ? "TAP LEFT / RIGHT\nAVOID THE EMPs\nCOLLECT MITCH COINS"
-    : "ARROW KEYS\nAVOID THE EMPs\nCOLLECT MITCH COINS",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 22,
-    fontWeight: "700",
-    fill: "#f2f2f2",
-    align: "center",
-    lineHeight: 34,
-    letterSpacing: 1
-  }
-});
-instructions.anchor.set(0.5);
-instructions.x = w / 2;
-instructions.y = h / 2 + 10;
-titleScreen.addChild(instructions);
-
-const titleBest = new PIXI.Text({
-  text: `BEST COINS: ${bestCoins}`,
-  style: {
-    fontFamily: "Arial",
-    fontSize: 22,
-    fontWeight: "900",
-    fill: "#fff5bf",
-    stroke: "#ff4fa3",
-    strokeThickness: 2,
-    letterSpacing: 1
-  }
-});
-titleBest.anchor.set(0.5);
-titleBest.x = w / 2;
-titleBest.y = h / 2 + 95;
-titleScreen.addChild(titleBest);
-
-const title3 = new PIXI.Text({
-  text: "PRESS START",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 22,
-    fontWeight: "900",
-    fill: "#d7d1d5",
-    letterSpacing: 4
-  }
-});
-title3.anchor.set(0.5);
-title3.x = w / 2;
-title3.y = h / 2 + 150;
-titleScreen.addChild(title3);
-
-const endedScreen = new PIXI.Container();
-endedScreen.visible = false;
-ui.addChild(endedScreen);
-
-const endedFade = new PIXI.Graphics();
-endedFade.rect(0, 0, w, h).fill({ color: 0x040008, alpha: 0.55 });
-endedScreen.addChild(endedFade);
-
-const endedBox = new PIXI.Graphics();
-endedBox.roundRect(w / 2 - 250, h / 2 - 135, 500, 270, 22).fill({ color: 0x0b0610, alpha: 0.88 });
-endedBox.stroke({ color: 0x7d193d, width: 2, alpha: 0.6 });
-endedScreen.addChild(endedBox);
-
-const endedText = new PIXI.Text({
-  text: "RUN IT BACK",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 34,
-    fontWeight: "900",
-    fill: "#e9dbe1",
-    stroke: "#7d193d",
-    strokeThickness: 2
-  }
-});
-endedText.anchor.set(0.5);
-endedText.x = w / 2;
-endedText.y = h / 2 - 66;
-endedScreen.addChild(endedText);
-
-const endedScore = new PIXI.Text({
-  text: "COINS: 0",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 24,
-    fontWeight: "900",
-    fill: "#fff5bf",
-    stroke: "#ff4fa3",
-    strokeThickness: 2
-  }
-});
-endedScore.anchor.set(0.5);
-endedScore.x = w / 2;
-endedScore.y = h / 2 - 18;
-endedScreen.addChild(endedScore);
-
-const endedBest = new PIXI.Text({
-  text: `BEST: ${bestCoins}`,
-  style: {
-    fontFamily: "Arial",
-    fontSize: 20,
-    fontWeight: "900",
-    fill: "#d9f6ff",
-    stroke: "#23456a",
-    strokeThickness: 2
-  }
-});
-endedBest.anchor.set(0.5);
-endedBest.x = w / 2;
-endedBest.y = h / 2 + 18;
-endedScreen.addChild(endedBest);
-
-const endedCombo = new PIXI.Text({
-  text: "BEST COMBO: 0",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 20,
-    fontWeight: "900",
-    fill: "#fff5bf",
-    stroke: "#ff4fa3",
-    strokeThickness: 2
-  }
-});
-endedCombo.anchor.set(0.5);
-endedCombo.x = w / 2;
-endedCombo.y = h / 2 + 52;
-endedScreen.addChild(endedCombo);
-
-const endedBadge = new PIXI.Text({
-  text: "",
-  style: {
-    fontFamily: "Arial",
-    fontSize: 20,
-    fontWeight: "900",
-    fill: "#fff5bf",
-    stroke: "#ff4fa3",
-    strokeThickness: 2
-  }
-});
-endedBadge.anchor.set(0.5);
-endedBadge.x = w / 2;
-endedBadge.y = h / 2 + 88;
-endedScreen.addChild(endedBadge);
-
-function updateBestDisplays() {
-  bestValue.text = String(bestCoins);
-  titleBest.text = `BEST COINS: ${bestCoins}`;
-  endedBest.text = `BEST: ${bestCoins}`;
-}
-
-function maybeUpdateBest() {
-  if (coinCount > bestCoins) {
-    bestCoins = coinCount;
-    saveBestCoins(bestCoins);
-    updateBestDisplays();
-    return true;
-  }
-  return false;
-}
-
-function clearAll() {
-  for (const s of smoke) smokeContainer.removeChild(s);
-  smoke.length = 0;
-
-  for (const o of obstacles) obstacleContainer.removeChild(o);
-  obstacles.length = 0;
-
-  for (const p of pickupBursts) fxContainer.removeChild(p);
-  pickupBursts.length = 0;
-
-  for (const t of floatingTexts) fxContainer.removeChild(t);
-  floatingTexts.length = 0;
-}
-
 async function startGame() {
   clearAll();
   currentLane = 2;
@@ -1365,7 +856,7 @@ app.ticker.add(() => {
   }
 
   let sectionSpeed = pacing.speed;
-  sectionSpeed *= 1 + beat * (isFinalSprint ? 0.34 : isFadeOut ? 0.32 : 0.22);
+  sectionSpeed *= 1 + beat * (isFinalSprint ? 0.34 : isFadeOut ? 0.30 : 0.22);
 
   sky.clear();
   sky.rect(0, 0, w, h).fill(0x07000d);
@@ -1528,23 +1019,15 @@ app.ticker.add(() => {
     empWarningTimer = 16;
   }
 
-  if (!isFadeOut && hazardSpawnTimer > pacing.empEvery - 8 && pendingEmpLane === null && globalSpawnCooldown <= 0) {
-    pendingEmpLane = Math.floor(Math.random() * 5);
-    empWarningTimer = 10;
-  }
-
   if (empWarningTimer > 0) {
     empWarningTimer -= 1;
   } else if (pendingEmpLane !== null && !isFadeOut && hazardSpawnTimer < pacing.empEvery - 20) {
     pendingEmpLane = null;
   }
 
-  const hazardRate = pacing.empEvery;
-  const coinRate = pacing.coinEvery;
-
   if (!isFadeOut) {
     hazardSpawnTimer += 1;
-    if (hazardSpawnTimer > hazardRate && globalSpawnCooldown <= 0) {
+    if (hazardSpawnTimer > pacing.empEvery && globalSpawnCooldown <= 0) {
       hazardSpawnTimer = 0;
       const spawnLane = pendingEmpLane;
       pendingEmpLane = null;
@@ -1561,7 +1044,7 @@ app.ticker.add(() => {
     }
 
     coinSpawnTimer += 1;
-    if (coinSpawnTimer > coinRate && globalSpawnCooldown <= 0) {
+    if (coinSpawnTimer > pacing.coinEvery && globalSpawnCooldown <= 0) {
       if (Math.random() < (isFinalSprint ? 0.34 : section === "rebuild" ? 0.22 : 0.15)) {
         spawnBigCoin();
       } else {
@@ -1629,11 +1112,8 @@ app.ticker.add(() => {
   }
 
   let reactiveShake = 0;
-  if (isFinalSprint) {
-    reactiveShake = beat * (isMobile ? 3.6 : 2.4);
-  } else if (isFadeOut) {
-    reactiveShake = beat * (isMobile ? 2.8 : 1.8);
-  }
+  if (isFinalSprint) reactiveShake = beat * (isMobile ? 3.6 : 2.4);
+  else if (isFadeOut) reactiveShake = beat * (isMobile ? 2.8 : 1.8);
 
   const totalShake = shakeIntensity + reactiveShake;
 
