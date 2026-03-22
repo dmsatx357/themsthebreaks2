@@ -737,6 +737,411 @@ function isColliding(a, b) {
     Math.abs(a.y - b.y) < aHalfH + bHalfH
   );
 }
+const flash = new PIXI.Graphics();
+flash.rect(0, 0, w, h).fill(0xffffff);
+flash.alpha = 0;
+ui.addChild(flash);
+
+const beatPulse = new PIXI.Graphics();
+beatPulse.rect(0, 0, w, h).fill(0xff7ab4);
+beatPulse.alpha = 0;
+ui.addChild(beatPulse);
+
+const glitchOverlay = new PIXI.Graphics();
+glitchOverlay.alpha = 0;
+ui.addChild(glitchOverlay);
+
+const warningOverlay = new PIXI.Graphics();
+warningOverlay.alpha = 0;
+ui.addChild(warningOverlay);
+
+const counterLabel = new PIXI.Text({
+  text: "MITCH COINS",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 16,
+    fontWeight: "700",
+    fill: "#f3e9ff",
+    letterSpacing: 2
+  }
+});
+counterLabel.x = 22;
+counterLabel.y = 18;
+ui.addChild(counterLabel);
+
+const counterValue = new PIXI.Text({
+  text: "0",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 34,
+    fontWeight: "900",
+    fill: "#ffffff",
+    stroke: "#ff4fa3",
+    strokeThickness: 2
+  }
+});
+counterValue.x = 20;
+counterValue.y = 36;
+ui.addChild(counterValue);
+
+const bestLabel = new PIXI.Text({
+  text: "BEST",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 16,
+    fontWeight: "700",
+    fill: "#f3e9ff",
+    letterSpacing: 2
+  }
+});
+bestLabel.anchor.set(1, 0);
+bestLabel.x = w - 22;
+bestLabel.y = 18;
+ui.addChild(bestLabel);
+
+const bestValue = new PIXI.Text({
+  text: String(bestCoins),
+  style: {
+    fontFamily: "Arial",
+    fontSize: 34,
+    fontWeight: "900",
+    fill: "#ffffff",
+    stroke: "#69d5ff",
+    strokeThickness: 2
+  }
+});
+bestValue.anchor.set(1, 0);
+bestValue.x = w - 20;
+bestValue.y = 36;
+ui.addChild(bestValue);
+
+const comboLabel = new PIXI.Text({
+  text: "COMBO",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 14,
+    fontWeight: "700",
+    fill: "#f3e9ff",
+    letterSpacing: 2
+  }
+});
+comboLabel.anchor.set(0.5, 0);
+comboLabel.x = w / 2;
+comboLabel.y = 18;
+ui.addChild(comboLabel);
+
+const comboValue = new PIXI.Text({
+  text: "x0",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 28,
+    fontWeight: "900",
+    fill: "#fff7bf",
+    stroke: "#ff4fa3",
+    strokeThickness: 2
+  }
+});
+comboValue.anchor.set(0.5, 0);
+comboValue.x = w / 2;
+comboValue.y = 34;
+ui.addChild(comboValue);
+
+const mobileControls = new PIXI.Container();
+ui.addChild(mobileControls);
+mobileControls.visible = false;
+
+const leftButton = new PIXI.Graphics();
+const rightButton = new PIXI.Graphics();
+
+function drawMobileButtons(leftActive = false, rightActive = false) {
+  leftButton.clear();
+  rightButton.clear();
+
+  leftButton.roundRect(18, h - 92, 74, 58, 16).fill({
+    color: leftActive ? 0x4fc3ff : 0xffffff,
+    alpha: leftActive ? 0.18 : 0.08
+  });
+  leftButton.stroke({
+    color: leftActive ? 0xeafcff : 0x7fdcff,
+    width: 2,
+    alpha: leftActive ? 0.7 : 0.35
+  });
+
+  rightButton.roundRect(w - 92, h - 92, 74, 58, 16).fill({
+    color: rightActive ? 0x4fc3ff : 0xffffff,
+    alpha: rightActive ? 0.18 : 0.08
+  });
+  rightButton.stroke({
+    color: rightActive ? 0xeafcff : 0x7fdcff,
+    width: 2,
+    alpha: rightActive ? 0.7 : 0.35
+  });
+}
+
+mobileControls.addChild(leftButton);
+mobileControls.addChild(rightButton);
+
+const leftArrow = new PIXI.Text({
+  text: "◀",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 30,
+    fontWeight: "900",
+    fill: "#d7f4ff"
+  }
+});
+leftArrow.anchor.set(0.5);
+leftArrow.x = 55;
+leftArrow.y = h - 63;
+mobileControls.addChild(leftArrow);
+
+const rightArrow = new PIXI.Text({
+  text: "▶",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 30,
+    fontWeight: "900",
+    fill: "#d7f4ff"
+  }
+});
+rightArrow.anchor.set(0.5);
+rightArrow.x = w - 55;
+rightArrow.y = h - 63;
+mobileControls.addChild(rightArrow);
+
+const titleScreen = new PIXI.Container();
+ui.addChild(titleScreen);
+
+const titleFade = new PIXI.Graphics();
+titleFade.rect(0, 0, w, h).fill({ color: 0x050008, alpha: 0.60 });
+titleScreen.addChild(titleFade);
+
+const titleBox = new PIXI.Graphics();
+titleBox.roundRect(w / 2 - 290, h / 2 - 185, 580, 380, 24).fill({ color: 0x0b0610, alpha: 0.88 });
+titleBox.stroke({ color: 0x294866, width: 2, alpha: 0.55 });
+titleScreen.addChild(titleBox);
+
+const title1 = new PIXI.Text({
+  text: "WHALERS",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 58,
+    fontWeight: "900",
+    fill: "#e9dbe1",
+    stroke: "#7d193d",
+    strokeThickness: 2,
+    letterSpacing: 8
+  }
+});
+title1.anchor.set(0.5);
+title1.x = w / 2;
+title1.y = h / 2 - 120;
+titleScreen.addChild(title1);
+
+const title2 = new PIXI.Text({
+  text: "THEMS THE BREAKS",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 26,
+    fontWeight: "700",
+    fill: "#93a7bf",
+    letterSpacing: 4
+  }
+});
+title2.anchor.set(0.5);
+title2.x = w / 2;
+title2.y = h / 2 - 70;
+titleScreen.addChild(title2);
+
+const instructions = new PIXI.Text({
+  text: isMobile
+    ? "TAP LEFT / RIGHT\nAVOID THE EMPs\nCOLLECT MITCH COINS"
+    : "ARROW KEYS\nAVOID THE EMPs\nCOLLECT MITCH COINS",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 22,
+    fontWeight: "700",
+    fill: "#f2f2f2",
+    align: "center",
+    lineHeight: 34,
+    letterSpacing: 1
+  }
+});
+instructions.anchor.set(0.5);
+instructions.x = w / 2;
+instructions.y = h / 2 + 10;
+titleScreen.addChild(instructions);
+
+const titleBest = new PIXI.Text({
+  text: `BEST COINS: ${bestCoins}`,
+  style: {
+    fontFamily: "Arial",
+    fontSize: 22,
+    fontWeight: "900",
+    fill: "#fff5bf",
+    stroke: "#ff4fa3",
+    strokeThickness: 2,
+    letterSpacing: 1
+  }
+});
+titleBest.anchor.set(0.5);
+titleBest.x = w / 2;
+titleBest.y = h / 2 + 95;
+titleScreen.addChild(titleBest);
+
+const title3 = new PIXI.Text({
+  text: "PRESS START",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 22,
+    fontWeight: "900",
+    fill: "#d7d1d5",
+    letterSpacing: 4
+  }
+});
+title3.anchor.set(0.5);
+title3.x = w / 2;
+title3.y = h / 2 + 150;
+titleScreen.addChild(title3);
+
+const endedScreen = new PIXI.Container();
+endedScreen.visible = false;
+ui.addChild(endedScreen);
+
+const endedFade = new PIXI.Graphics();
+endedFade.rect(0, 0, w, h).fill({ color: 0x040008, alpha: 0.55 });
+endedScreen.addChild(endedFade);
+
+const endedBox = new PIXI.Graphics();
+endedBox.roundRect(w / 2 - 250, h / 2 - 135, 500, 270, 22).fill({ color: 0x0b0610, alpha: 0.88 });
+endedBox.stroke({ color: 0x7d193d, width: 2, alpha: 0.6 });
+endedScreen.addChild(endedBox);
+
+const endedText = new PIXI.Text({
+  text: "RUN IT BACK",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 34,
+    fontWeight: "900",
+    fill: "#e9dbe1",
+    stroke: "#7d193d",
+    strokeThickness: 2
+  }
+});
+endedText.anchor.set(0.5);
+endedText.x = w / 2;
+endedText.y = h / 2 - 66;
+endedScreen.addChild(endedText);
+
+const endedScore = new PIXI.Text({
+  text: "COINS: 0",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 24,
+    fontWeight: "900",
+    fill: "#fff5bf",
+    stroke: "#ff4fa3",
+    strokeThickness: 2
+  }
+});
+endedScore.anchor.set(0.5);
+endedScore.x = w / 2;
+endedScore.y = h / 2 - 18;
+endedScreen.addChild(endedScore);
+
+const endedBest = new PIXI.Text({
+  text: `BEST: ${bestCoins}`,
+  style: {
+    fontFamily: "Arial",
+    fontSize: 20,
+    fontWeight: "900",
+    fill: "#d9f6ff",
+    stroke: "#23456a",
+    strokeThickness: 2
+  }
+});
+endedBest.anchor.set(0.5);
+endedBest.x = w / 2;
+endedBest.y = h / 2 + 18;
+endedScreen.addChild(endedBest);
+
+const endedCombo = new PIXI.Text({
+  text: "BEST COMBO: 0",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 20,
+    fontWeight: "900",
+    fill: "#fff5bf",
+    stroke: "#ff4fa3",
+    strokeThickness: 2
+  }
+});
+endedCombo.anchor.set(0.5);
+endedCombo.x = w / 2;
+endedCombo.y = h / 2 + 52;
+endedScreen.addChild(endedCombo);
+
+const endedBadge = new PIXI.Text({
+  text: "",
+  style: {
+    fontFamily: "Arial",
+    fontSize: 20,
+    fontWeight: "900",
+    fill: "#fff5bf",
+    stroke: "#ff4fa3",
+    strokeThickness: 2
+  }
+});
+endedBadge.anchor.set(0.5);
+endedBadge.x = w / 2;
+endedBadge.y = h / 2 + 88;
+endedScreen.addChild(endedBadge);
+
+function updateBestDisplays() {
+  bestValue.text = String(bestCoins);
+  titleBest.text = `BEST COINS: ${bestCoins}`;
+  endedBest.text = `BEST: ${bestCoins}`;
+}
+
+function maybeUpdateBest() {
+  if (coinCount > bestCoins) {
+    bestCoins = coinCount;
+    saveBestCoins(bestCoins);
+    updateBestDisplays();
+    return true;
+  }
+  return false;
+}
+
+function clearAll() {
+  for (const s of smoke) smokeContainer.removeChild(s);
+  smoke.length = 0;
+
+  for (const o of obstacles) obstacleContainer.removeChild(o);
+  obstacles.length = 0;
+
+  for (const p of pickupBursts) fxContainer.removeChild(p);
+  pickupBursts.length = 0;
+
+  for (const t of floatingTexts) fxContainer.removeChild(t);
+  floatingTexts.length = 0;
+}
+
+song.addEventListener("ended", () => {
+  if (gameState === "playing") {
+    const wasNewBest = maybeUpdateBest();
+    endedScore.text = `COINS: ${coinCount}`;
+    endedBest.text = `BEST: ${bestCoins}`;
+    endedCombo.text = `BEST COMBO: ${bestCombo}`;
+    endedBadge.text = wasNewBest ? "NEW BEST" : bestCombo >= 10 ? "HOT STREAK" : "";
+    gameState = "ended";
+    endedScreen.visible = true;
+    mobileControls.visible = false;
+  }
+});
+
+updateBestDisplays();
+drawMobileButtons(false, false);
 
 async function startGame() {
   clearAll();
