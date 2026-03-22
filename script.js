@@ -33,23 +33,23 @@ const SKYLINE_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2
 const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
 const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
 const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
-const BEST_KEY = "whalers_best_coins_v8";
+const BEST_KEY = "whalers_best_coins_v9";
 const FINAL_SPRINT_TIME = 189;   // 3:09
 const FINAL_SPRINT_END = 205;    // 3:25
 
 const TIMES = {
-  intro: 0,         // 0:00–0:08
-  drums: 9,         // 0:09–0:24
-  guitar: 25,       // 0:25–0:40
-  prechorus: 41,    // 0:41–0:57
-  chorus: 58,       // 0:58–1:30
-  chorusOutro: 91,  // 1:31–1:46
-  solo: 107,        // 1:47–2:19
-  bridge: 140,      // 2:20–2:43
-  break: 164,       // 2:44–2:52
-  rebuild: 173,     // 2:53–3:08
-  finalDrive: 189,  // 3:09–3:25
-  fade: 206         // 3:26–3:42
+  intro: 0,
+  drums: 9,
+  guitar: 25,
+  prechorus: 41,
+  chorus: 58,
+  chorusOutro: 91,
+  solo: 107,
+  bridge: 140,
+  break: 164,
+  rebuild: 173,
+  finalDrive: 189,
+  fade: 206
 };
 
 const SECTION_PACING = {
@@ -63,7 +63,7 @@ const SECTION_PACING = {
   bridge:      { empEvery: 140, coinEvery: 108, cooldown: 38, speed: 0.0102 },
   break:       { empEvery: 188, coinEvery: 96,  cooldown: 46, speed: 0.0082 },
   rebuild:     { empEvery: 96,  coinEvery: 118, cooldown: 28, speed: 0.0134 },
-  finalDrive:  { empEvery: 56,  coinEvery: 128, cooldown: 18, speed: 0.0174 },
+  finalDrive:  { empEvery: 66,  coinEvery: 128, cooldown: 26, speed: 0.0172 },
   fade:        { empEvery: 190, coinEvery: 150, cooldown: 44, speed: 0.0078 }
 };
 
@@ -181,13 +181,13 @@ const SECTION_VISUALS = {
   finalDrive: {
     baseColor: 0xcf296d,
     flashColor: 0xff2c84,
-    widthBoost: 1.68,
-    baseAlpha: 0.40,
-    flashBoost: 1.00,
-    logoGlow: 0.31,
-    logoScale: 0.308,
-    sunGlow: 0.28,
-    sunScale: 0.52
+    widthBoost: 1.72,
+    baseAlpha: 0.42,
+    flashBoost: 1.08,
+    logoGlow: 0.34,
+    logoScale: 0.314,
+    sunGlow: 0.31,
+    sunScale: 0.535
   },
   fade: {
     baseColor: 0x4b4350,
@@ -201,29 +201,6 @@ const SECTION_VISUALS = {
     sunScale: 0.462
   }
 };
-
-const horizonY = h * 0.81;
-
-const roadBottomLeft = isMobile ? w * 0.12 : w * 0.28;
-const roadBottomRight = isMobile ? w * 0.88 : w * 0.72;
-const roadTopLeft = isMobile ? w * 0.40 : w * 0.465;
-const roadTopRight = isMobile ? w * 0.60 : w * 0.535;
-
-const laneTopFractions = isMobile
-  ? [0.08, 0.29, 0.50, 0.71, 0.92]
-  : [0.12, 0.32, 0.50, 0.68, 0.88];
-
-const laneBottomFractions = isMobile
-  ? [0.05, 0.27, 0.50, 0.73, 0.95]
-  : [0.08, 0.30, 0.50, 0.70, 0.92];
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
-function clamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
-}
 
 function getSection(t) {
   if (t >= TIMES.fade) return "fade";
@@ -239,6 +216,21 @@ function getSection(t) {
   if (t >= TIMES.drums) return "drums";
   return "intro";
 }
+
+const horizonY = h * 0.81;
+
+const roadBottomLeft = isMobile ? w * 0.12 : w * 0.28;
+const roadBottomRight = isMobile ? w * 0.88 : w * 0.72;
+const roadTopLeft = isMobile ? w * 0.40 : w * 0.465;
+const roadTopRight = isMobile ? w * 0.60 : w * 0.535;
+
+const laneTopFractions = isMobile
+  ? [0.08, 0.29, 0.50, 0.71, 0.92]
+  : [0.12, 0.32, 0.50, 0.68, 0.88];
+
+const laneBottomFractions = isMobile
+  ? [0.05, 0.27, 0.50, 0.73, 0.95]
+  : [0.08, 0.30, 0.50, 0.70, 0.92];
 
 function laneBottomX(lane) {
   return lerp(roadBottomLeft, roadBottomRight, laneBottomFractions[lane]);
@@ -431,6 +423,7 @@ let hazardSpawnTimer = 0;
 let coinSpawnTimer = 0;
 let globalSpawnCooldown = 0;
 let flashAlpha = 0;
+let beatPulseAlpha = 0;
 let coinCount = 0;
 let shakeIntensity = 0;
 let glitchTimer = 0;
@@ -488,6 +481,9 @@ skyline.y = horizonY - 105;
 skyline.scale.set(0.78);
 world.addChild(skyline);
 
+const skylineWash = new PIXI.Graphics();
+world.addChild(skylineWash);
+
 const road = new PIXI.Graphics();
 road.moveTo(roadBottomLeft, h);
 road.lineTo(roadTopLeft, horizonY);
@@ -528,7 +524,7 @@ function drawSideLines(scroll, section) {
     const rightStart = rightRoadX + lerp(20, 60, t);
 
     const baseAlpha = lerp(0.05, vis.baseAlpha, t);
-    const flashBoost = beat > 0.10 ? (0.10 + beat * vis.flashBoost) : 0;
+    const flashBoost = beat > 0.08 ? (0.08 + beat * vis.flashBoost) : 0;
 
     sideLines.moveTo(0, y);
     sideLines.lineTo(leftEnd, y);
@@ -546,12 +542,12 @@ function drawSideLines(scroll, section) {
       alpha: baseAlpha
     });
 
-    if (beat > 0.08 || section === "finalDrive") {
+    if (beat > 0.06 || section === "finalDrive") {
       sideLines.moveTo(0, y);
       sideLines.lineTo(leftEnd, y);
       sideLines.stroke({
         color: vis.flashColor,
-        width: lerp(1.4, 4.8 * vis.widthBoost, t),
+        width: lerp(1.4, 5.0 * vis.widthBoost, t),
         alpha: flashBoost
       });
 
@@ -559,7 +555,7 @@ function drawSideLines(scroll, section) {
       sideLines.lineTo(w, y);
       sideLines.stroke({
         color: vis.flashColor,
-        width: lerp(1.4, 4.8 * vis.widthBoost, t),
+        width: lerp(1.4, 5.0 * vis.widthBoost, t),
         alpha: flashBoost
       });
     }
@@ -734,35 +730,34 @@ function spawnFinalPattern() {
   if (patternType === 0) {
     const safeLane = Math.floor(Math.random() * 5);
     for (let l = 0; l < 5; l++) {
-      if (l !== safeLane) spawnEMPAtLane(l, 0.16);
+      if (l !== safeLane) spawnEMPAtLane(l, 0.14);
     }
-    if (Math.random() < 0.7) {
+    if (Math.random() < 0.65) {
       const baitLane = clamp(safeLane + (Math.random() > 0.5 ? 1 : -1), 0, 4);
       const big = makeBigCoin();
       big.lane = baitLane;
-      big.progress = 0.09;
+      big.progress = 0.08;
       big.hit = false;
       obstacleContainer.addChild(big);
       obstacles.push(big);
     }
   } else if (patternType === 1) {
-    spawnEMPAtLane(0, 0.14);
-    spawnEMPAtLane(4, 0.14);
-    spawnEMPAtLane(1, 0.08);
-    spawnEMPAtLane(3, 0.08);
+    spawnEMPAtLane(0, 0.12);
+    spawnEMPAtLane(4, 0.12);
+    spawnEMPAtLane(1, 0.06);
+    spawnEMPAtLane(3, 0.06);
     const big = makeBigCoin();
     big.lane = 2;
-    big.progress = 0.03;
+    big.progress = 0.02;
     big.hit = false;
     obstacleContainer.addChild(big);
     obstacles.push(big);
   } else {
-    spawnEMPAtLane(1, 0.16);
-    spawnEMPAtLane(2, 0.10);
-    spawnEMPAtLane(3, 0.16);
+    spawnEMPAtLane(1, 0.14);
+    spawnEMPAtLane(3, 0.14);
     const coin = makeBigCoin();
     coin.lane = Math.random() > 0.5 ? 0 : 4;
-    coin.progress = 0.06;
+    coin.progress = 0.04;
     coin.hit = false;
     obstacleContainer.addChild(coin);
     obstacles.push(coin);
@@ -821,6 +816,11 @@ const flash = new PIXI.Graphics();
 flash.rect(0, 0, w, h).fill(0xffffff);
 flash.alpha = 0;
 ui.addChild(flash);
+
+const beatPulse = new PIXI.Graphics();
+beatPulse.rect(0, 0, w, h).fill(0xff7ab4);
+beatPulse.alpha = 0;
+ui.addChild(beatPulse);
 
 const glitchOverlay = new PIXI.Graphics();
 glitchOverlay.alpha = 0;
@@ -1210,6 +1210,7 @@ async function startGame() {
   car.bump = 0;
   stunnedUntil = 0;
   flashAlpha = 0;
+  beatPulseAlpha = 0;
   gridScroll = 0;
   hazardSpawnTimer = 0;
   coinSpawnTimer = 0;
@@ -1305,7 +1306,7 @@ app.ticker.add(() => {
   updateAudio();
 
   let sectionSpeed = pacing.speed;
-  sectionSpeed *= 1 + beat * (isFinalSprint ? 0.42 : 0.22);
+  sectionSpeed *= 1 + beat * (isFinalSprint ? 0.34 : 0.22);
 
   sky.clear();
   sky.rect(0, 0, w, h).fill(0x07000d);
@@ -1315,23 +1316,46 @@ app.ticker.add(() => {
     s.scale.set(0.9 + Math.abs(Math.sin(now * s.speed * 1.7 + s.offset)) * 0.7);
   }
 
-  sun.scale.set(vis.sunScale + beat * (isFinalSprint ? 0.12 : isFadeOut ? 0.03 : 0.07));
+  skyline.tint = isFinalSprint ? 0xff9ac7 : isFadeOut ? 0xaaa0aa : 0xffffff;
+
+  skylineWash.clear();
+  if (isFinalSprint) {
+    skylineWash.rect(0, horizonY - 150, w, 180).fill({
+      color: 0xff4f9b,
+      alpha: 0.05 + beat * 0.10
+    });
+  } else if (isFadeOut) {
+    skylineWash.rect(0, horizonY - 150, w, 180).fill({
+      color: 0xffd4ea,
+      alpha: 0.03
+    });
+  }
+
+  sun.scale.set(vis.sunScale + beat * (isFinalSprint ? 0.16 : isFadeOut ? 0.03 : 0.07));
 
   sunGlow.clear();
-  sunGlow.circle(w / 2, horizonY - 70, isFinalSprint ? 152 : 130).fill({
-    color: isFinalSprint ? 0x8f214d : 0x5f1636,
-    alpha: vis.sunGlow + beat * (isFinalSprint ? 0.16 : isFadeOut ? 0.02 : 0.07)
+  sunGlow.circle(w / 2, horizonY - 70, isFinalSprint ? 165 : 130).fill({
+    color: isFinalSprint ? 0xbf245d : 0x5f1636,
+    alpha: vis.sunGlow + beat * (isFinalSprint ? 0.22 : isFadeOut ? 0.02 : 0.07)
   });
 
   logoGlow.clear();
-  logoGlow.circle(logo.x, logo.y + 6, isFinalSprint ? 175 : 145).fill({
-    color: isFinalSprint ? 0xff92ca : 0xfff4fd,
-    alpha: vis.logoGlow + beat * (isFinalSprint ? 0.22 : isFadeOut ? 0.03 : 0.12)
+  logoGlow.circle(logo.x, logo.y + 6, isFinalSprint ? 190 : 145).fill({
+    color: isFinalSprint ? 0xffaad7 : 0xfff4fd,
+    alpha: vis.logoGlow + beat * (isFinalSprint ? 0.28 : isFadeOut ? 0.03 : 0.12)
   });
-  logo.alpha = isFinalSprint ? 0.98 + beat * 0.20 : isFadeOut ? 0.72 + beat * 0.04 : 0.86 + beat * 0.14;
-  logo.scale.set(vis.logoScale + beat * (isFinalSprint ? 0.04 : isFadeOut ? 0.008 : 0.025));
+  logo.alpha = isFinalSprint ? 1.0 + beat * 0.20 : isFadeOut ? 0.72 + beat * 0.04 : 0.86 + beat * 0.14;
+  logo.scale.set(vis.logoScale + beat * (isFinalSprint ? 0.055 : isFadeOut ? 0.008 : 0.025));
 
-  gridScroll += 0.008 * (1 + beat * (isFinalSprint ? 0.55 : isFadeOut ? 0.08 : 0.28));
+  beatPulseAlpha = isFinalSprint
+    ? Math.max(beatPulseAlpha * 0.78, beat * 0.14)
+    : isFadeOut
+    ? Math.max(beatPulseAlpha * 0.84, beat * 0.03)
+    : Math.max(beatPulseAlpha * 0.84, beat * 0.04);
+
+  beatPulse.alpha = beatPulseAlpha;
+
+  gridScroll += 0.008 * (1 + beat * (isFinalSprint ? 0.60 : isFadeOut ? 0.08 : 0.28));
   if (gridScroll >= 1) gridScroll = 0;
   drawSideLines(gridScroll, section);
 
@@ -1441,20 +1465,22 @@ app.ticker.add(() => {
 
   hazardSpawnTimer += 1;
   if (hazardSpawnTimer > hazardRate && globalSpawnCooldown <= 0) {
-    spawnEMP();
     hazardSpawnTimer = 0;
-    globalSpawnCooldown = pacing.cooldown;
     empWarningTimer = 0;
 
-    if (isFinalSprint && patternCooldown <= 0 && Math.random() < 0.28) {
+    if (isFinalSprint && patternCooldown <= 0 && Math.random() < 0.18) {
       spawnFinalPattern();
-      patternCooldown = 82;
+      patternCooldown = 105;
+      globalSpawnCooldown = 34;
+    } else {
+      spawnEMP();
+      globalSpawnCooldown = pacing.cooldown;
     }
   }
 
   coinSpawnTimer += 1;
   if (coinSpawnTimer > coinRate && globalSpawnCooldown <= 0) {
-    if (Math.random() < (isFinalSprint ? 0.38 : section === "rebuild" ? 0.22 : 0.15)) {
+    if (Math.random() < (isFinalSprint ? 0.34 : section === "rebuild" ? 0.22 : 0.15)) {
       spawnBigCoin();
     } else {
       spawnCoin();
@@ -1519,9 +1545,16 @@ app.ticker.add(() => {
     }
   }
 
-  if (shakeIntensity > 0.05) {
-    world.x = (Math.random() - 0.5) * shakeIntensity;
-    world.y = (Math.random() - 0.5) * shakeIntensity;
+  let reactiveShake = 0;
+  if (isFinalSprint) {
+    reactiveShake = beat * (isMobile ? 3.8 : 2.6);
+  }
+
+  const totalShake = shakeIntensity + reactiveShake;
+
+  if (totalShake > 0.05) {
+    world.x = (Math.random() - 0.5) * totalShake;
+    world.y = (Math.random() - 0.5) * totalShake;
     shakeIntensity *= 0.82;
   } else {
     world.x = 0;
