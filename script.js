@@ -33,7 +33,7 @@ const SKYLINE_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2
 const SUN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/sun.png";
 const LOGO_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/WHALERS%20logo.png";
 const COIN_URL = "https://raw.githubusercontent.com/dmsatx357/themsthebreaks2/main/neon_face_coin.png";
-const BEST_KEY = "whalers_best_coins_v9";
+const BEST_KEY = "whalers_best_coins_v10";
 const FINAL_SPRINT_TIME = 189;   // 3:09
 const FINAL_SPRINT_END = 205;    // 3:25
 
@@ -64,7 +64,7 @@ const SECTION_PACING = {
   break:       { empEvery: 188, coinEvery: 96,  cooldown: 46, speed: 0.0082 },
   rebuild:     { empEvery: 96,  coinEvery: 118, cooldown: 28, speed: 0.0134 },
   finalDrive:  { empEvery: 66,  coinEvery: 128, cooldown: 26, speed: 0.0172 },
-  fade:        { empEvery: 190, coinEvery: 150, cooldown: 44, speed: 0.0078 }
+  fade:        { empEvery: 9999, coinEvery: 9999, cooldown: 9999, speed: 0.0108 }
 };
 
 const SECTION_VISUALS = {
@@ -190,17 +190,25 @@ const SECTION_VISUALS = {
     sunScale: 0.535
   },
   fade: {
-    baseColor: 0x4b4350,
-    flashColor: 0xb7aab7,
-    widthBoost: 0.90,
-    baseAlpha: 0.10,
-    flashBoost: 0.16,
-    logoGlow: 0.12,
-    logoScale: 0.282,
-    sunGlow: 0.10,
-    sunScale: 0.462
+    baseColor: 0xff4fa3,
+    flashColor: 0xffc7e6,
+    widthBoost: 1.95,
+    baseAlpha: 0.28,
+    flashBoost: 0.48,
+    logoGlow: 0.24,
+    logoScale: 0.305,
+    sunGlow: 0.18,
+    sunScale: 0.52
   }
 };
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
 
 function getSection(t) {
   if (t >= TIMES.fade) return "fade";
@@ -433,6 +441,8 @@ let bestCombo = 0;
 let comboFlash = 0;
 let lastMoveDir = 0;
 let patternCooldown = 0;
+let pendingEmpLane = null;
+let fadeCleared = false;
 
 const world = new PIXI.Container();
 const ui = new PIXI.Container();
@@ -508,6 +518,15 @@ world.addChild(rightEdge);
 const sideLines = new PIXI.Graphics();
 world.addChild(sideLines);
 
+const horizonWarning = new PIXI.Graphics();
+world.addChild(horizonWarning);
+
+const fadeBlur = new PIXI.BlurFilter();
+fadeBlur.blur = 0;
+skyline.filters = [fadeBlur];
+sun.filters = [fadeBlur];
+sunGlow.filters = [fadeBlur];
+
 function drawSideLines(scroll, section) {
   sideLines.clear();
 
@@ -524,13 +543,13 @@ function drawSideLines(scroll, section) {
     const rightStart = rightRoadX + lerp(20, 60, t);
 
     const baseAlpha = lerp(0.05, vis.baseAlpha, t);
-    const flashBoost = beat > 0.08 ? (0.08 + beat * vis.flashBoost) : 0;
+    const flashBoost = beat > 0.06 ? (0.08 + beat * vis.flashBoost) : 0;
 
     sideLines.moveTo(0, y);
     sideLines.lineTo(leftEnd, y);
     sideLines.stroke({
       color: vis.baseColor,
-      width: lerp(1, 3.6 * vis.widthBoost, t),
+      width: lerp(1, 3.8 * vis.widthBoost, t),
       alpha: baseAlpha
     });
 
@@ -538,16 +557,16 @@ function drawSideLines(scroll, section) {
     sideLines.lineTo(w, y);
     sideLines.stroke({
       color: vis.baseColor,
-      width: lerp(1, 3.6 * vis.widthBoost, t),
+      width: lerp(1, 3.8 * vis.widthBoost, t),
       alpha: baseAlpha
     });
 
-    if (beat > 0.06 || section === "finalDrive") {
+    if (beat > 0.05 || section === "finalDrive" || section === "fade") {
       sideLines.moveTo(0, y);
       sideLines.lineTo(leftEnd, y);
       sideLines.stroke({
         color: vis.flashColor,
-        width: lerp(1.4, 5.0 * vis.widthBoost, t),
+        width: lerp(1.4, 5.2 * vis.widthBoost, t),
         alpha: flashBoost
       });
 
@@ -555,11 +574,38 @@ function drawSideLines(scroll, section) {
       sideLines.lineTo(w, y);
       sideLines.stroke({
         color: vis.flashColor,
-        width: lerp(1.4, 5.0 * vis.widthBoost, t),
+        width: lerp(1.4, 5.2 * vis.widthBoost, t),
         alpha: flashBoost
       });
     }
   }
+}
+
+function drawHorizonWarning(alpha = 0) {
+  horizonWarning.clear();
+  if (!pendingEmpLane || alpha <= 0) return;
+
+  const x = laneWorldX(pendingEmpLane, 0.01);
+  const y = horizonY + 2;
+
+  horizonWarning.circle(x, y, 10 + beat * 16).fill({
+    color: 0xffc0dd,
+    alpha: alpha * 0.45
+  });
+
+  horizonWarning.ellipse(x, y + 2, 28 + beat * 24, 8 + beat * 4).fill({
+    color: 0xff4fa3,
+    alpha: alpha * 0.32
+  });
+
+  horizonWarning.moveTo(x, y - 8);
+  horizonWarning.lineTo(x - 8, y + 6);
+  horizonWarning.lineTo(x + 8, y + 6);
+  horizonWarning.closePath();
+  horizonWarning.fill({
+    color: 0xffffff,
+    alpha: alpha * 0.55
+  });
 }
 
 const car = new PIXI.Sprite(carTexture);
@@ -698,9 +744,9 @@ function spawnEMPAtLane(lane, progress = 0) {
   obstacles.push(obj);
 }
 
-function spawnEMP() {
-  const lane = Math.floor(Math.random() * 5);
-  spawnEMPAtLane(lane, 0);
+function spawnEMP(lane = null) {
+  const resolvedLane = lane ?? Math.floor(Math.random() * 5);
+  spawnEMPAtLane(resolvedLane, 0);
 }
 
 function spawnCoin() {
@@ -1223,6 +1269,8 @@ async function startGame() {
   glitchTimer = 0;
   empWarningTimer = 0;
   patternCooldown = 0;
+  pendingEmpLane = null;
+  fadeCleared = false;
   counterValue.text = "0";
   comboValue.text = "x0";
   endedBadge.text = "";
@@ -1305,8 +1353,20 @@ app.ticker.add(() => {
 
   updateAudio();
 
+  if (isFadeOut && !fadeCleared) {
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      obstacleContainer.removeChild(obstacles[i]);
+    }
+    obstacles.length = 0;
+    pendingEmpLane = null;
+    empWarningTimer = 0;
+    patternCooldown = 9999;
+    globalSpawnCooldown = 9999;
+    fadeCleared = true;
+  }
+
   let sectionSpeed = pacing.speed;
-  sectionSpeed *= 1 + beat * (isFinalSprint ? 0.34 : 0.22);
+  sectionSpeed *= 1 + beat * (isFinalSprint ? 0.34 : isFadeOut ? 0.32 : 0.22);
 
   sky.clear();
   sky.rect(0, 0, w, h).fill(0x07000d);
@@ -1316,7 +1376,7 @@ app.ticker.add(() => {
     s.scale.set(0.9 + Math.abs(Math.sin(now * s.speed * 1.7 + s.offset)) * 0.7);
   }
 
-  skyline.tint = isFinalSprint ? 0xff9ac7 : isFadeOut ? 0xaaa0aa : 0xffffff;
+  skyline.tint = isFinalSprint ? 0xff9ac7 : isFadeOut ? 0xffb5d9 : 0xffffff;
 
   skylineWash.clear();
   if (isFinalSprint) {
@@ -1325,39 +1385,47 @@ app.ticker.add(() => {
       alpha: 0.05 + beat * 0.10
     });
   } else if (isFadeOut) {
-    skylineWash.rect(0, horizonY - 150, w, 180).fill({
-      color: 0xffd4ea,
-      alpha: 0.03
+    skylineWash.rect(0, horizonY - 160, w, 200).fill({
+      color: 0xff74b5,
+      alpha: 0.06 + beat * 0.04
     });
   }
 
-  sun.scale.set(vis.sunScale + beat * (isFinalSprint ? 0.16 : isFadeOut ? 0.03 : 0.07));
+  fadeBlur.blur = isFadeOut ? 3 + beat * 4 : 0;
+
+  sun.scale.set(vis.sunScale + beat * (isFinalSprint ? 0.16 : isFadeOut ? 0.12 : 0.07));
 
   sunGlow.clear();
-  sunGlow.circle(w / 2, horizonY - 70, isFinalSprint ? 165 : 130).fill({
-    color: isFinalSprint ? 0xbf245d : 0x5f1636,
-    alpha: vis.sunGlow + beat * (isFinalSprint ? 0.22 : isFadeOut ? 0.02 : 0.07)
+  sunGlow.circle(w / 2, horizonY - 70, isFadeOut ? 185 : isFinalSprint ? 165 : 130).fill({
+    color: isFadeOut ? 0xff7ab4 : isFinalSprint ? 0xbf245d : 0x5f1636,
+    alpha: vis.sunGlow + beat * (isFinalSprint ? 0.22 : isFadeOut ? 0.14 : 0.07)
   });
 
   logoGlow.clear();
-  logoGlow.circle(logo.x, logo.y + 6, isFinalSprint ? 190 : 145).fill({
-    color: isFinalSprint ? 0xffaad7 : 0xfff4fd,
-    alpha: vis.logoGlow + beat * (isFinalSprint ? 0.28 : isFadeOut ? 0.03 : 0.12)
+  logoGlow.circle(logo.x, logo.y + 6, isFadeOut ? 210 : isFinalSprint ? 190 : 145).fill({
+    color: isFadeOut ? 0xffd0ea : isFinalSprint ? 0xffaad7 : 0xfff4fd,
+    alpha: vis.logoGlow + beat * (isFinalSprint ? 0.28 : isFadeOut ? 0.18 : 0.12)
   });
-  logo.alpha = isFinalSprint ? 1.0 + beat * 0.20 : isFadeOut ? 0.72 + beat * 0.04 : 0.86 + beat * 0.14;
-  logo.scale.set(vis.logoScale + beat * (isFinalSprint ? 0.055 : isFadeOut ? 0.008 : 0.025));
+  logo.alpha = isFinalSprint ? 1.0 + beat * 0.20 : isFadeOut ? 0.92 + beat * 0.10 : 0.86 + beat * 0.14;
+  logo.scale.set(vis.logoScale + beat * (isFinalSprint ? 0.055 : isFadeOut ? 0.05 : 0.025));
 
   beatPulseAlpha = isFinalSprint
-    ? Math.max(beatPulseAlpha * 0.78, beat * 0.14)
+    ? Math.max(beatPulseAlpha * 0.76, beat * 0.14)
     : isFadeOut
-    ? Math.max(beatPulseAlpha * 0.84, beat * 0.03)
+    ? Math.max(beatPulseAlpha * 0.80, beat * 0.16)
     : Math.max(beatPulseAlpha * 0.84, beat * 0.04);
 
   beatPulse.alpha = beatPulseAlpha;
 
-  gridScroll += 0.008 * (1 + beat * (isFinalSprint ? 0.60 : isFadeOut ? 0.08 : 0.28));
+  gridScroll += 0.008 * (1 + beat * (isFinalSprint ? 0.60 : isFadeOut ? 0.95 : 0.28));
   if (gridScroll >= 1) gridScroll = 0;
   drawSideLines(gridScroll, section);
+
+  if (!isFadeOut && pendingEmpLane !== null && empWarningTimer > 0) {
+    drawHorizonWarning(0.45 + Math.abs(Math.sin(now * 0.03)) * 0.35);
+  } else {
+    drawHorizonWarning(0);
+  }
 
   counterValue.text = String(coinCount);
   bestValue.text = String(bestCoins);
@@ -1456,36 +1524,52 @@ app.ticker.add(() => {
   if (globalSpawnCooldown > 0) globalSpawnCooldown -= 1;
   if (patternCooldown > 0) patternCooldown -= 1;
 
-  if (!isFadeOut && hazardSpawnTimer > pacing.empEvery - 16 && globalSpawnCooldown <= 0) {
-    empWarningTimer = Math.max(empWarningTimer, 12);
+  if (!isFadeOut && pendingEmpLane === null && hazardSpawnTimer > pacing.empEvery - 18 && globalSpawnCooldown <= 0) {
+    pendingEmpLane = Math.floor(Math.random() * 5);
+    empWarningTimer = 16;
+  }
+
+  if (!isFadeOut && hazardSpawnTimer > pacing.empEvery - 8 && pendingEmpLane === null && globalSpawnCooldown <= 0) {
+    pendingEmpLane = Math.floor(Math.random() * 5);
+    empWarningTimer = 10;
+  }
+
+  if (empWarningTimer > 0) {
+    empWarningTimer -= 1;
+  } else if (pendingEmpLane !== null && !isFadeOut && hazardSpawnTimer < pacing.empEvery - 20) {
+    pendingEmpLane = null;
   }
 
   const hazardRate = pacing.empEvery;
   const coinRate = pacing.coinEvery;
 
-  hazardSpawnTimer += 1;
-  if (hazardSpawnTimer > hazardRate && globalSpawnCooldown <= 0) {
-    hazardSpawnTimer = 0;
-    empWarningTimer = 0;
+  if (!isFadeOut) {
+    hazardSpawnTimer += 1;
+    if (hazardSpawnTimer > hazardRate && globalSpawnCooldown <= 0) {
+      hazardSpawnTimer = 0;
+      const spawnLane = pendingEmpLane;
+      pendingEmpLane = null;
+      empWarningTimer = 0;
 
-    if (isFinalSprint && patternCooldown <= 0 && Math.random() < 0.18) {
-      spawnFinalPattern();
-      patternCooldown = 105;
-      globalSpawnCooldown = 34;
-    } else {
-      spawnEMP();
-      globalSpawnCooldown = pacing.cooldown;
+      if (isFinalSprint && patternCooldown <= 0 && Math.random() < 0.18) {
+        spawnFinalPattern();
+        patternCooldown = 105;
+        globalSpawnCooldown = 34;
+      } else {
+        spawnEMP(spawnLane);
+        globalSpawnCooldown = pacing.cooldown;
+      }
     }
-  }
 
-  coinSpawnTimer += 1;
-  if (coinSpawnTimer > coinRate && globalSpawnCooldown <= 0) {
-    if (Math.random() < (isFinalSprint ? 0.34 : section === "rebuild" ? 0.22 : 0.15)) {
-      spawnBigCoin();
-    } else {
-      spawnCoin();
+    coinSpawnTimer += 1;
+    if (coinSpawnTimer > coinRate && globalSpawnCooldown <= 0) {
+      if (Math.random() < (isFinalSprint ? 0.34 : section === "rebuild" ? 0.22 : 0.15)) {
+        spawnBigCoin();
+      } else {
+        spawnCoin();
+      }
+      coinSpawnTimer = 0;
     }
-    coinSpawnTimer = 0;
   }
 
   for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -1547,7 +1631,9 @@ app.ticker.add(() => {
 
   let reactiveShake = 0;
   if (isFinalSprint) {
-    reactiveShake = beat * (isMobile ? 3.8 : 2.6);
+    reactiveShake = beat * (isMobile ? 3.6 : 2.4);
+  } else if (isFadeOut) {
+    reactiveShake = beat * (isMobile ? 2.8 : 1.8);
   }
 
   const totalShake = shakeIntensity + reactiveShake;
@@ -1581,11 +1667,10 @@ app.ticker.add(() => {
     glitchOverlay.alpha = 0;
   }
 
-  if (empWarningTimer > 0) {
-    empWarningTimer -= 1;
+  if (empWarningTimer > 0 && !isFadeOut) {
     warningOverlay.clear();
-    const alpha = 0.06 + Math.abs(Math.sin(now * 0.04)) * 0.14;
-    warningOverlay.rect(0, 0, w, h).fill({ color: 0xff4f8d, alpha: alpha * 0.12 });
+    const alpha = 0.04 + Math.abs(Math.sin(now * 0.04)) * 0.08;
+    warningOverlay.rect(0, 0, w, h).fill({ color: 0xff4f8d, alpha });
     warningOverlay.alpha = 1;
   } else {
     warningOverlay.clear();
