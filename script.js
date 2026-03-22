@@ -201,7 +201,6 @@ const SECTION_VISUALS = {
     sunScale: 0.52
   }
 };
-
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
